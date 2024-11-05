@@ -56,6 +56,7 @@ public class RenderQueueProcessor : MonoBehaviour
 
             double timeElapsed = 0.0;
             DateTime startTime = DateTime.Now;
+            int processorCount = Environment.ProcessorCount;
 
             while (batchQueue.Count > 0)
             {
@@ -69,29 +70,37 @@ public class RenderQueueProcessor : MonoBehaviour
 
                 while (batch.Tasks.Count > 0)
                 {
-                    var renderTask = batch.Tasks.Dequeue();
-                    try
+                    var taskGroup = new List<RenderTask>();
+                    for (int i = 0; i < processorCount && batch.Tasks.Count > 0; i++)
                     {
-                        renderTask.task.SetResult(Connector.RenderImmediate(renderTask.settings));
+                        taskGroup.Add(batch.Tasks.Dequeue());
                     }
-                    catch (Exception ex)
-                    {
-                        renderTask.task.SetException(ex);
-                    }
+                    Parallel.ForEach(taskGroup,
+                        new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, renderTask =>
+                        {
+                            try
+                            {
+                                renderTask.task.SetResult(Connector.RenderImmediate(renderTask.settings));
+                            }
+                            catch (Exception ex)
+                            {
+                                renderTask.task.SetException(ex);
+                            }
+                        });
                     timeElapsed = (DateTime.Now - startTime).TotalMilliseconds;
                     if (timeElapsed > Thundagun.Config.GetValue(Thundagun.TimeoutWorkInterval) && SynchronizationManager.Timeout)
                     {
                         break;
                     }
                 }
+                if (batch.IsComplete && batch.Tasks.Count == 0)
+                {
+                    batchQueue.Dequeue();
+                }
                 timeElapsed = (DateTime.Now - startTime).TotalMilliseconds;
                 if (timeElapsed > Thundagun.Config.GetValue(Thundagun.TimeoutWorkInterval) && SynchronizationManager.Timeout)
                 {
                     break;
-                }
-                if (batch.IsComplete && batch.Tasks.Count == 0)
-                {
-                    batchQueue.Dequeue();
                 }
             }
 

@@ -65,9 +65,11 @@ public class Thundagun : ResoniteMod
     [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<double> TimeoutCooldown =
     new("TimeoutCooldown", "Timeout Cooldown: The time required after a panic to listen for thresholds again.", () => 1000.0);
-    [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<double> TimeoutWorkInterval =
-    new("TimeoutWorkInterval", "Timeout Work Interval: The max amount of time Unity will spend processing changes during a timeout.", () => 100.0);
+
+    [AutoRegisterConfigKey] internal readonly static ModConfigurationKey<double> TimeoutWorkInterval =
+        new("TimeoutWorkInterval",
+            "Timeout Work Interval: The max amount of time Unity will spend processing changes during a timeout.",
+            () => 16.67);
     [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<float> EMAExponent =
         new("EMAExponent", "EMA Exponent: The exponent used for the exponential moving average for calculating framerate.", () => 0.1f);
