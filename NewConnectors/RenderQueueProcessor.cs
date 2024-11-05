@@ -71,12 +71,12 @@ public class RenderQueueProcessor : MonoBehaviour
                 while (batch.Tasks.Count > 0)
                 {
                     var taskGroup = new List<RenderTask>();
-                    for (int i = 0; i < processorCount && batch.Tasks.Count > 0; i++)
+                    for (int i = 0; i < processorCount / 2 && batch.Tasks.Count > 0; i++)
                     {
                         taskGroup.Add(batch.Tasks.Dequeue());
                     }
                     Parallel.ForEach(taskGroup,
-                        new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, renderTask =>
+                        new ParallelOptions { MaxDegreeOfParallelism = processorCount / 2 }, renderTask =>
                         {
                             try
                             {
