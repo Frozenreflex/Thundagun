@@ -514,7 +514,7 @@ public static class ThreadLogger
             while (true)
             {
                 Thundagun.Msg($"Unity: {SynchronizationManager.UnityEMA} Resonite: {SynchronizationManager.ResoniteEMA} Mode: {SynchronizationManager.CurrentSyncMode}");
-                Thread.Sleep((int)(1.0f / Thundagun.Config.GetValue(Thundagun.LoggingRate)));
+                Thread.Sleep((int)(1.0f / Thundagun.Config.GetValue(Thundagun.LoggingRate) * 1000.0f));
             }
         });
     }
