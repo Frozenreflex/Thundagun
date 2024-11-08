@@ -540,6 +540,7 @@ public static class SynchronizationManager
 }
 
 
+// optional but recommended:
 // If in UI or panel focus mode (could maybe add this but it's more steps), don't update the camera
 public static class CameraRefresher
 {
@@ -551,14 +552,16 @@ public static class CameraRefresher
         float mouseY = Input.GetAxis("Mouse Y");
 
         float sensitivity = 0.1f; // get from Reso settings; scale as needed
+        
         float yaw = mouseX * sensitivity;
         float pitch = mouseY * sensitivity;
 
+        
+        // if Unity camera is already parented to head, maybe just rotate the head instead
         UnityEngine.Transform cameraTransform = UnityEngine.Camera.main.transform;
         cameraTransform.Rotate(Vector3.up, yaw, Space.Self);
         cameraTransform.Rotate(Vector3.right, pitch, Space.Self);
 
-        // Update the static cameraRotation variable
         cameraRotation = cameraTransform.rotation;
     }
 
