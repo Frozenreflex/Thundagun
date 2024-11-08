@@ -545,12 +545,11 @@ public static class SynchronizationManager
 // If in UI or panel focus mode (could maybe add this but it's more steps), don't update the camera
 public static class CameraRefresher
 {
-    public static Quaternion cameraRotation; // FrooxEngine will need to read from this
+    public static Quaternion headRotation; // FrooxEngine will need to read from this
 
     public static void RefreshCamera()
     {
         Vector2 mouseDelta = UnityEngine.InputSystem.Mouse.current.delta.ReadValue();
-
 
         float mouseX = mouseDelta.x;
         float mouseY = mouseDelta.y;
@@ -560,18 +559,17 @@ public static class CameraRefresher
         float yaw = mouseX * sensitivity;
         float pitch = mouseY * sensitivity;
 
-        
-        // if Unity camera is already parented to head, maybe just rotate the head instead
-        UnityEngine.Transform cameraTransform = UnityEngine.Camera.main.transform;
-        cameraTransform.Rotate(Vector3.up, yaw, Space.Self);
-        cameraTransform.Rotate(Vector3.right, pitch, Space.Self);
 
-        cameraRotation = cameraTransform.rotation;
+        UnityEngine.Transform headTransform = UnityEngine.Camera.main.transform.parent;
+        headTransform.Rotate(Vector3.up, yaw, Space.Self);
+        headTransform.Rotate(Vector3.right, pitch, Space.Self);
+
+        headRotation = headTransform.rotation;
     }
 
     public static (float pitch, float yaw) GetPitchAndYaw()
     {
-        Vector3 euler = cameraRotation.eulerAngles;
+        Vector3 euler = headRotation.eulerAngles;
         float pitch = euler.x;
         float yaw = euler.y;
         return (pitch, yaw);
