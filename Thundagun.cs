@@ -217,6 +217,8 @@ public static class FrooxEngineRunnerPatch
 
                 engine.InputInterface.UpdateWindowResolution(new int2(Screen.width, Screen.height));
 
+                CameraRefresher.RefreshCamera();
+
                 var boilerplateTime = DateTime.Now;
                 List<IUpdatePacket> updates;
                 lock (Thundagun.CurrentPackets)
@@ -534,5 +536,37 @@ public static class SynchronizationManager
         }
 
         ResoniteStartTime = DateTime.Now;
+    }
+}
+
+
+// If in UI or panel focus mode (could maybe add this but it's more steps), don't update the camera
+public static class CameraRefresher
+{
+    public static Quaternion cameraRotation; // FrooxEngine will need to read from this
+
+    public static void RefreshCamera()
+    {
+        float mouseX = Input.GetAxis("Mouse X"); // get input actions from Unity
+        float mouseY = Input.GetAxis("Mouse Y");
+
+        float sensitivity = 0.1f; // get from Reso settings; scale as needed
+        float yaw = mouseX * sensitivity;
+        float pitch = mouseY * sensitivity;
+
+        UnityEngine.Transform cameraTransform = UnityEngine.Camera.main.transform;
+        cameraTransform.Rotate(Vector3.up, yaw, Space.Self);
+        cameraTransform.Rotate(Vector3.right, pitch, Space.Self);
+
+        // Update the static cameraRotation variable
+        cameraRotation = cameraTransform.rotation;
+    }
+
+    public static (float pitch, float yaw) GetPitchAndYaw()
+    {
+        Vector3 euler = cameraRotation.eulerAngles;
+        float pitch = euler.x;
+        float yaw = euler.y;
+        return (pitch, yaw);
     }
 }
