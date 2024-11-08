@@ -11,6 +11,7 @@ using FrooxEngine;
 using HarmonyLib;
 using ResoniteModLoader;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityFrooxEngineRunner;
 using Object = UnityEngine.Object;
 using RenderConnector = Thundagun.NewConnectors.RenderConnector;
@@ -548,8 +549,11 @@ public static class CameraRefresher
 
     public static void RefreshCamera()
     {
-        float mouseX = Input.GetAxis("Mouse X"); // get input actions from Unity
-        float mouseY = Input.GetAxis("Mouse Y");
+        Vector2 mouseDelta = UnityEngine.InputSystem.Mouse.current.delta.ReadValue();
+
+
+        float mouseX = mouseDelta.x;
+        float mouseY = mouseDelta.y;
 
         float sensitivity = 0.1f; // get from Reso settings; scale as needed
         

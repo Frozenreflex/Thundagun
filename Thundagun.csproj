@@ -63,6 +63,9 @@
     <Reference Include="UnityEngine.VRModule">
       <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.VRModule.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>$(ResonitePath)Resonite_Data/Managed/Unity.InputSystem.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Postprocessing.Runtime">
       <HintPath>$(ResonitePath)Resonite_Data/Managed/Unity.Postprocessing.Runtime.dll</HintPath>
     </Reference>
