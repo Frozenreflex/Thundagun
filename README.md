@@ -4,17 +4,6 @@ Thundagun is a lightning fast performance mod for Resonite. It improves performa
 
 **Warning: This mod is a prerelease. It may contain bugs and other issues. Crashes and missing/buggy/jittery visuals are possible but are generally uncommon. Use at your own risk.**
 
-## Current Features
-
-- **Asynchronous Rendering**: Allows Unity to update independently of Resonite, increasing HMD framerate and protecting against stalls.
-
-## Planned Features
-
-These are the features that haven't been implemented yet. If you want to help out, these would be a great place to start! You can also check out the Issues board for more ideas.
-
-- **Asynchronous Input Handling**: Moves the IK, input, and locomotion handling to Unity or on a separate thread, allowing the player to continue moving during engine stalls in VR or desktop.
-- **State Buffering**: Copies the Slots required for the current RenderTask to a separate buffer, allowing the engine to continue updating while Unity renders.
-
 ## Installation
 
 1. Install [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader).
