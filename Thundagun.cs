@@ -139,6 +139,43 @@ public class Thundagun : ResoniteMod
     }
 }
 
+
+[HarmonyPatch(typeof(FrooxEngine.FirstPersonTargettingController))]
+public static class FrooxEngine_FirstPersonTargettingController_Patch
+{
+    private static readonly FieldInfo _horizontalAngleField = AccessTools.Field(typeof(FrooxEngine.FirstPersonTargettingController), "_horizontalAngle");
+    private static readonly FieldInfo _verticalAngleField = AccessTools.Field(typeof(FrooxEngine.FirstPersonTargettingController), "_verticalAngle");
+    private static readonly FieldInfo _headDirectionField = AccessTools.Field(typeof(FrooxEngine.FirstPersonTargettingController), "HeadDirection");
+    private static readonly FieldInfo _forwardDirectionField = AccessTools.Field(typeof(FrooxEngine.FirstPersonTargettingController), "ForwardDirection");
+    private static readonly FieldInfo _lastPrimaryActivityField = AccessTools.Field(typeof(FrooxEngine.FirstPersonTargettingController), "LastPrimaryActivity");
+
+    public static void OnBeforeHeadUpdate(FrooxEngine.FirstPersonTargettingController __instance)
+    {
+        var (pitch, yaw) = CameraRefresher.GetPitchAndYaw();
+
+        _horizontalAngleField.SetValue(__instance, yaw);
+        float clampedPitch = MathX.Clamp(pitch, __instance.MinVerticalAngle, __instance.MaxVerticalAngle);
+        _verticalAngleField.SetValue(__instance, clampedPitch);
+
+        float3 axis = float3.Up;
+        floatQ a = floatQ.AxisAngle(in axis, yaw);
+        float3 axis2 = float3.Right;
+        floatQ b = floatQ.AxisAngle(in axis2, clampedPitch);
+        floatQ q = a * b;
+
+        axis = float3.Forward;
+        float3 forwardDirection = q * axis;
+        _headDirectionField.SetValue(__instance, forwardDirection);
+        _forwardDirectionField.SetValue(__instance, forwardDirection);
+
+        bool isActive = !__instance.InputInterface.IsCursorLocked || 
+                        !MathX.Approximately(yaw, (float)_horizontalAngleField.GetValue(__instance)) || 
+                        !MathX.Approximately(clampedPitch, (float)_verticalAngleField.GetValue(__instance));
+        _lastPrimaryActivityField.SetValue(__instance, isActive);
+    }
+}
+
+
 [HarmonyPatch(typeof(FrooxEngineRunner))]
 public static class FrooxEngineRunnerPatch
 {
@@ -555,10 +592,9 @@ public static class CameraRefresher
         float mouseY = mouseDelta.y;
 
         float sensitivity = 0.1f; // get from Reso settings; scale as needed
-        
+
         float yaw = mouseX * sensitivity;
         float pitch = mouseY * sensitivity;
-
 
         UnityEngine.Transform headTransform = UnityEngine.Camera.main.transform.parent;
         headTransform.Rotate(Vector3.up, yaw, Space.Self);
