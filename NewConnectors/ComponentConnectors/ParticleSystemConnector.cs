@@ -48,8 +48,8 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
     public MotionVectorGenerationMode MotionVectorGenerationMode;
     public ParticleSystemRenderSpace Alignment;
     public bool AllowRoll;
-    public MaterialConnector Material;
-    public MaterialConnector TrailMaterial;
+    public AssetConnectors.MaterialConnector Material;
+    public AssetConnectors.MaterialConnector TrailMaterial;
     public AssetConnectors.MeshConnector Mesh;
     public float MinParticleSize;
     public float MaxParticleSize;
@@ -99,7 +99,7 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
         ShouldBeEnabled = ParticleSystem.ShouldBeEnabled;
         if (ShouldBeEnabled)
         {
-            MaxParticles = ParticleSystem.MaxParticles.Value;
+            MaxParticles = ParticleSystem.MaxParticles;
             Space = ParticleSystem.SimulationSpace.Space.Connector as SlotConnector;
             SpaceIsRoot = Space?.Owner.IsRootSlot ?? false;
             if (ParticleStyle is not null)
@@ -108,8 +108,8 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
                 MotionVectorGenerationMode = ParticleStyle.MotionVectorMode.Value.ToUnity();
                 Alignment = ParticleStyle.Alignment.Value.ToUnity();
                 AllowRoll = ParticleStyle.Alignment.Value != ParticleAlignment.Facing;
-                Material = ParticleStyle.Material?.Asset?.Connector as MaterialConnector;
-                TrailMaterial = ParticleStyle.TrailMaterial?.Asset?.Connector as MaterialConnector;
+                Material = ParticleStyle.Material?.Asset?.Connector as AssetConnectors.MaterialConnector;
+                TrailMaterial = ParticleStyle.TrailMaterial?.Asset?.Connector as AssetConnectors.MaterialConnector;
                 Mesh = ParticleStyle.Mesh?.Asset?.Connector as AssetConnectors.MeshConnector;
                 MinParticleSize = ParticleStyle.MinParticleSize.Value;
                 MaxParticleSize = ParticleStyle.MaxParticleSize.Value;
@@ -126,7 +126,7 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
                     });
                 }
 
-                if (Mesh is not null)
+                if (owner.UnityComponent?.pRenderer?.mesh is not null)
                 {
                     RenderMode = ParticleSystemRenderMode.Mesh;
                 }
@@ -147,12 +147,12 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
                     TextureSheetEnabled = true;
                     TextureSheetNumTilesX = ParticleStyle.AnimationTiles.Value.x;
                     TextureSheetNumTilesY = ParticleStyle.AnimationTiles.Value.y;
-                    TextureSheetCycleCount = ParticleStyle.AnimationCycles.Value;
+                    TextureSheetCycleCount = ParticleStyle.AnimationCycles;
                     TextureSheetAnimation = ParticleStyle.AnimationType.Value.ToUnity();
                     TextureSheetRowMode = (ParticleStyle.UseRandomRow
                         ? ParticleSystemAnimationRowMode.Random
                         : ParticleSystemAnimationRowMode.Custom);
-                    TextureSheetRowIndex = ParticleStyle.UseRowIndex.Value;
+                    TextureSheetRowIndex = ParticleStyle.UseRowIndex;
                 }
 
                 if (ParticleStyle.ParticleTrails.Value == ParticleTrailMode.None) TrailEnabled = false;
@@ -162,25 +162,25 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
                     TrailMode = ParticleStyle.ParticleTrails.Value == ParticleTrailMode.PerParticle
                         ? ParticleSystemTrailMode.PerParticle
                         : ParticleSystemTrailMode.Ribbon;
-                    TrailRatio = ParticleStyle.TrailRatio.Value;
-                    TrailMinVertexDistance = ParticleStyle.TrailMinimumVertexDistance.Value;
-                    TrailWorldSpace = ParticleStyle.TrailWorldSpace.Value;
-                    TrailDieWithParticles = ParticleStyle.TrailDiesWithParticle.Value;
-                    TrailRibbonCount = ParticleStyle.RibbonCount.Value;
-                    TrailSizeAffectsWidth = ParticleStyle.ParticleSizeAffectsTrailWidth.Value;
-                    TrailSizeAffectsLifetime = ParticleStyle.ParticleSizeAffectsTrailLifetime.Value;
-                    TrailInheritParticleColor = ParticleStyle.InheritTrailColorFromParticle.Value;
-                    TrailGenerateLightingData = ParticleStyle.GenerateLightingDataForTrails.Value;
+                    TrailRatio = ParticleStyle.TrailRatio;
+                    TrailMinVertexDistance = ParticleStyle.TrailMinimumVertexDistance;
+                    TrailWorldSpace = ParticleStyle.TrailWorldSpace;
+                    TrailDieWithParticles = ParticleStyle.TrailDiesWithParticle;
+                    TrailRibbonCount = ParticleStyle.RibbonCount;
+                    TrailSizeAffectsWidth = ParticleStyle.ParticleSizeAffectsTrailWidth;
+                    TrailSizeAffectsLifetime = ParticleStyle.ParticleSizeAffectsTrailLifetime;
+                    TrailInheritParticleColor = ParticleStyle.InheritTrailColorFromParticle;
+                    TrailGenerateLightingData = ParticleStyle.GenerateLightingDataForTrails;
                     TrailTextureMode = (ParticleSystemTrailTextureMode)ParticleStyle.TrailTextureMode.Value;
-                    TrailLifetime = new UnityEngine.ParticleSystem.MinMaxCurve(ParticleStyle.MinTrailLifetime.Value,
-                        ParticleStyle.MaxTrailLifetime.Value);
+                    TrailLifetime = new UnityEngine.ParticleSystem.MinMaxCurve(ParticleStyle.MinTrailLifetime,
+                        ParticleStyle.MaxTrailLifetime);
                     TrailColorOverLifetime =
                         new UnityEngine.ParticleSystem.MinMaxGradient(
                             ParticleStyle.MinTrailColor.Value.ToUnityAuto(Owner.Engine),
                             ParticleStyle.MaxTrailColor.Value.ToUnityAuto(Owner.Engine)
                         );
-                    TrailWidthOverTrail = new UnityEngine.ParticleSystem.MinMaxCurve(ParticleStyle.MinTrailWidth.Value,
-                        ParticleStyle.MaxTrailWidth.Value);
+                    TrailWidthOverTrail = new UnityEngine.ParticleSystem.MinMaxCurve(ParticleStyle.MinTrailWidth,
+                        ParticleStyle.MaxTrailWidth);
                 }
 
                 if (ParticleStyle.Light.Target == null)
@@ -191,14 +191,14 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
 
                 LightsEnabled = true;
                 LightsLight = ParticleStyle.Light.Target.Connector as LightConnector;
-                LightsRatio = ParticleStyle.LightsRatio.Value;
-                LightsUseRandomDistribution = ParticleStyle.LightRandomDistribution.Value;
-                LightsUseParticleColor = ParticleStyle.LightsUseParticleColor.Value;
-                LightsSizeAffectsRange = ParticleStyle.SizeAffectsLightRange.Value;
-                LightsAlphaAffectsIntensity = ParticleStyle.AlphaAffectsLightIntensity.Value;
-                LightsRangeMultiplier = ParticleStyle.LightRangeMultiplier.Value;
-                LightsIntensityMultiplier = ParticleStyle.LightIntensityMultiplier.Value;
-                LightsMaxLights = ParticleStyle.MaximumLights.Value;
+                LightsRatio = ParticleStyle.LightsRatio;
+                LightsUseRandomDistribution = ParticleStyle.LightRandomDistribution;
+                LightsUseParticleColor = ParticleStyle.LightsUseParticleColor;
+                LightsSizeAffectsRange = ParticleStyle.SizeAffectsLightRange;
+                LightsAlphaAffectsIntensity = ParticleStyle.AlphaAffectsLightIntensity;
+                LightsRangeMultiplier = ParticleStyle.LightRangeMultiplier;
+                LightsIntensityMultiplier = ParticleStyle.LightIntensityMultiplier;
+                LightsMaxLights = ParticleStyle.MaximumLights;
             }
         }
     }
@@ -232,8 +232,8 @@ public class ApplyChangesParticleSystemConnector : UpdatePacket<ParticleSystemCo
                 pRenderer.reflectionProbeUsage = ReflectionProbeUsage.BlendProbesAndSkybox;
                 pRenderer.alignment = Alignment;
                 pRenderer.allowRoll = AllowRoll;
-                pRenderer.material = Material?.UnityMaterial;
-                pRenderer.trailMaterial = TrailMaterial?.UnityMaterial;
+                pRenderer.material = Material?.UnityMaterial ?? AssetConnectors.MaterialConnector.NullMaterial;
+                pRenderer.trailMaterial = TrailMaterial?.UnityMaterial ?? AssetConnectors.MaterialConnector.NullMaterial;
                 pRenderer.mesh = Mesh?.Mesh;
                 pRenderer.minParticleSize = MinParticleSize;
                 pRenderer.maxParticleSize = MaxParticleSize;
