@@ -60,7 +60,7 @@ public class Thundagun : ResoniteMod
             false, value => value >= 1.0);
     [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
-        new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime.", () => false,
+        new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can be glitchy.", () => false,
             false, value => true);
 
     public override void OnEngineInit()
@@ -219,7 +219,6 @@ public static class FrooxEngineRunnerPatch
                 UpdateFrameRate(__instance);
                 var starttime = DateTime.Now;
 
-
                 var engine = ____frooxEngine;
                 Thundagun.FrooxEngineTask ??= Task.Run(() =>
                 {
@@ -250,7 +249,6 @@ public static class FrooxEngineRunnerPatch
 
                 var boilerplateTime = DateTime.Now;
                 
-
                 if (Thundagun.engineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
                 {
                     List<IUpdatePacket> updates;
@@ -265,6 +263,8 @@ public static class FrooxEngineRunnerPatch
                         try
                         {
                             update.Update();
+
+                            
                         }
                         catch (Exception e)
                         {
@@ -274,9 +274,6 @@ public static class FrooxEngineRunnerPatch
                     lock (Thundagun.engineCompletionStatus)
                         Thundagun.engineCompletionStatus.EngineCompleted = false;
                 }
-                
-                if (UnityAssetIntegrator._instance is not null)
-                    lock (assets_processed) assets_processed.Enqueue(UnityAssetIntegrator._instance.ProcessQueue1(1000));
 
                 var assetTime = DateTime.Now;
                 var loopTime = DateTime.Now;

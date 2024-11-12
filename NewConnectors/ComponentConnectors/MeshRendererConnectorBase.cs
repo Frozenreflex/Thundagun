@@ -24,9 +24,7 @@ public abstract class MeshRendererConnectorBase<T, TU> : ComponentConnectorSingl
 
     public abstract void AssignMesh(TU renderer, Mesh mesh);
 
-    protected bool MeshWasChanged { get; private set; }
-
-    protected int MaterialCount { get; private set; }
+    public int MaterialCount;
 
     UnityEngine.Renderer IRendererConnector.Renderer => MeshRenderer;
 
@@ -76,7 +74,6 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
     public MeshConnector Mesh;
     public bool MaterialsChanged;
     public bool IsLocalElement;
-    public int MaterialCount;
     public List<IMaterialConnector> Materials;
     public bool MaterialPropertyBlocksChanged;
     public List<IMaterialPropertyBlockConnector> MaterialPropertyBlocks;
@@ -87,7 +84,6 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
     public ShadowCastingMode ShadowCastingMode;
     public bool MotionVectorModeChanged;
     public MotionVectorGenerationMode MotionVectorMode;
-    //public bool Instantiated;
 
     public ApplyChangesMeshRendererConnectorBase(MeshRendererConnectorBase<T, TU> owner) : base(owner)
     {
@@ -98,10 +94,16 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
             Mesh = owner.Owner.Mesh?.Asset?.Connector as MeshConnector;
             MaterialsChanged = owner.Owner.MaterialsChanged;
             IsLocalElement = Owner.Owner.IsLocalElement;
-            owner.Owner.MaterialsChanged = false;
-            Materials = owner.Owner.Materials.Select(i => i?.Asset?.Connector).ToList();
             MaterialPropertyBlocksChanged = owner.Owner.MaterialPropertyBlocksChanged;
-            owner.Owner.MaterialPropertyBlocksChanged = false;
+            if (MaterialsChanged || MeshWasChanged)
+            {
+                owner.Owner.MaterialsChanged = false;
+            }
+            if (MaterialsChanged || MeshWasChanged || MaterialPropertyBlocksChanged)
+            {
+                owner.Owner.MaterialPropertyBlocksChanged = false;
+            }
+            Materials = owner.Owner.Materials.Select(i => i?.Asset?.Connector).ToList();
             MaterialPropertyBlocks = owner.Owner.MaterialPropertyBlocks.Select(i => i?.Asset?.Connector).ToList();
             Enabled = owner.Owner.Enabled;
             SortingOrderChanged = owner.Owner.SortingOrder.GetWasChangedAndClear();
@@ -145,7 +147,7 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
             if (MaterialsChanged || MeshWasChanged)
             {
                 flag = true;
-                MaterialCount = 1;
+                Owner.MaterialCount = 1;
                 var nullMaterial = IsLocalElement
                     ? MaterialConnector.InvisibleMaterial
                     : MaterialConnector.NullMaterial;
@@ -155,11 +157,10 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
                     for (var i = 0; i < Owner.UnityMaterials.Length; i++)
                         Owner.UnityMaterials[i] = (Materials[i] as MaterialConnector)?.UnityMaterial ?? nullMaterial;
                     Owner.MeshRenderer.sharedMaterials = Owner.UnityMaterials;
-                    MaterialCount = Owner.UnityMaterials.Length;
+                    Owner.MaterialCount = Owner.UnityMaterials.Length;
                 }
                 else if (Materials.Count == 1)
-                    Owner.MeshRenderer.sharedMaterial =
-                        (Materials[0] as MaterialConnector)?.UnityMaterial ?? nullMaterial;
+                    Owner.MeshRenderer.sharedMaterial = (Materials[0] as MaterialConnector)?.UnityMaterial ?? nullMaterial;
                 else
                     Owner.MeshRenderer.sharedMaterial = nullMaterial;
             }
@@ -168,7 +169,7 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
             {
                 if (MaterialPropertyBlocks.Count > 0)
                 {
-                    for (var i = 0; i < MaterialCount; i++)
+                    for (var i = 0; i < Owner.MaterialCount; i++)
                     {
                         if (i < MaterialPropertyBlocks.Count)
                         {
@@ -184,7 +185,7 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
                 }
                 else if (Owner.UsesMaterialPropertyBlocks)
                 {
-                    for (var i = 0; i < MaterialCount; i++) Owner.MeshRenderer.SetPropertyBlock(null, i);
+                    for (var i = 0; i < Owner.MaterialCount; i++) Owner.MeshRenderer.SetPropertyBlock(null, i);
                     Owner.UsesMaterialPropertyBlocks = false;
                 }
             }
