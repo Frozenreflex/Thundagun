@@ -58,15 +58,43 @@ public class Thundagun : ResoniteMod
     internal readonly static ModConfigurationKey<double> MaxUnityTickRate =
         new("MaxUnityTickRate", "Max Unity Tick Rate: The max rate per second at which Unity can update.", () => 1000.0,
             false, value => value >= 1.0);
+<<<<<<< Updated upstream
     [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
         new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime.", () => false,
             false, value => true);
+=======
+    //[AutoRegisterConfigKey]
+    //internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
+    //    new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can be glitchy.", () => false,
+    //        false, value => true);
+    [AutoRegisterConfigKey]
+    internal readonly static ModConfigurationKey<bool> EmulateVanilla =
+        new("EmulateVanilla", "Emulate Vanilla: Emulate the rendering behavior of the vanilla game. Effectively disables the mod. Good for desktop mode.", () => false,
+            false, value => true);
+    //[AutoRegisterConfigKey]
+    //internal readonly static ModConfigurationKey<int> BufferCount =
+    //  new("BufferCount", "Buffer Count: The max amount of extra update packet batches to allow in the queue before frooxengine waits for unity to be done rendering. Experimental.", () => 0,
+    //      true, value => value >= 0);
+>>>>>>> Stashed changes
 
     public override void OnEngineInit()
     {
         var harmony = new Harmony("Thundagun");
         Config = GetConfiguration();
+
+        // Don't allow the unity tickrate to be lower than the engine tickrate, it results in really wacky stuff (avatar lags behind unity camera by multiple seconds)
+        Config.OnThisConfigurationChanged += (ConfigurationChangedEvent evt) => 
+        { 
+            if ((evt.Key == MaxUnityTickRate || evt.Key == MaxEngineTickRate) && Config.GetValue(MaxUnityTickRate) < Config.GetValue(MaxEngineTickRate))
+            {
+                Config.Set(MaxUnityTickRate, Config.GetValue(MaxEngineTickRate));
+            }
+        };
+        if (Config.GetValue(MaxUnityTickRate) < Config.GetValue(MaxEngineTickRate))
+        {
+            Config.Set(MaxUnityTickRate, Config.GetValue(MaxEngineTickRate));
+        }
 
         PatchEngineTypes();
         PatchComponentConnectors(harmony);
@@ -162,11 +190,11 @@ public class Thundagun : ResoniteMod
 
 class PatchDesktop
 {
-	public static bool Prefix(DuplicableDisplay __instance, uDesktopDuplication.Monitor monitor)
-	{
-		Thundagun.QueuePacket(new DesktopUpdatePacket(__instance, monitor));
-		return false;
-	}
+    public static bool Prefix(DuplicableDisplay __instance, uDesktopDuplication.Monitor monitor)
+    {
+        Thundagun.QueuePacket(new DesktopUpdatePacket(__instance, monitor));
+        return false;
+    }
 }
 
 [HarmonyPatch(typeof(FrooxEngineRunner))]
@@ -216,6 +244,8 @@ public static class FrooxEngineRunnerPatch
             
             try
             {
+                SynchronizationManager.OnUnityUpdate();
+
                 UpdateFrameRate(__instance);
                 var starttime = DateTime.Now;
 
@@ -225,6 +255,8 @@ public static class FrooxEngineRunnerPatch
                 {
                     while (!shutdown)
                     {
+                        SynchronizationManager.OnResoniteUpdate();
+
                         var total = 0;
                         lock (assets_processed)
                             while (assets_processed.Any()) total += assets_processed.Dequeue();
@@ -233,18 +265,32 @@ public static class FrooxEngineRunnerPatch
                         engine.AssetsUpdated(total);
                         engine.RunUpdateLoop();
 
+<<<<<<< Updated upstream
                         SynchronizationManager.OnResoniteUpdate();
+=======
+                        Queue<IUpdatePacket> copy;
+                        lock (Thundagun.CurrentBatch)
+                        {
+                            copy = new Queue<IUpdatePacket>(Thundagun.CurrentBatch);
+                            Thundagun.CurrentBatch.Clear();
+                            Thundagun.CurrentBatch.TrimExcess();
+                        }
+
+                        lock (Thundagun.UpdatePacketBatches)
+                        {
+                            Thundagun.UpdatePacketBatches.Enqueue(copy);
+                        }
+
+                        
+>>>>>>> Stashed changes
                     }
                 });
 
-                SynchronizationManager.OnUnityUpdate();
-                
                 if (Thundagun.FrooxEngineTask?.Exception is not null) throw Thundagun.FrooxEngineTask.Exception;
 
                 var focusedWorld = engine.WorldManager.FocusedWorld;
                 var lastFocused = ____lastFocusedWorld;
                 UpdateHeadOutput(focusedWorld, engine, ____vrOutput, ____screenOutput, ____audioListener, ref ____worlds);
-
 
                 engine.InputInterface.UpdateWindowResolution(new int2(Screen.width, Screen.height));
 
@@ -253,6 +299,7 @@ public static class FrooxEngineRunnerPatch
 
                 if (Thundagun.engineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
                 {
+<<<<<<< Updated upstream
                     List<IUpdatePacket> updates;
                     lock (Thundagun.CurrentPackets)
                     {
@@ -261,6 +308,51 @@ public static class FrooxEngineRunnerPatch
                     }
 
                     foreach (var update in updates)
+=======
+                    Queue<IUpdatePacket> updates = null;
+                    lock (Thundagun.UpdatePacketBatches)
+                    {
+                        if (Thundagun.UpdatePacketBatches.Count > 0)
+                        {
+                            updates = Thundagun.UpdatePacketBatches.Dequeue();
+                        }
+                    }
+
+                    //if (!Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+                    //{
+                    //    lock (Thundagun.UpdatePacketBatches)
+                    //    {
+                    //        if (Thundagun.UpdatePacketBatches.Count > 0)
+                    //        {
+                    //            updates = Thundagun.UpdatePacketBatches.Dequeue();
+                    //        }
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    lock (Thundagun.CurrentBatch)
+                    //    {
+                    //        if (Thundagun.CurrentBatch.Count > 0)
+                    //        {
+                    //            updates = new Queue<IUpdatePacket>(Thundagun.CurrentBatch);
+                    //            Thundagun.CurrentBatch.Clear();
+                    //            Thundagun.CurrentBatch.TrimExcess();
+                    //        }
+                    //    }
+                    //    if (updates == null || updates.Count == 0)
+                    //    {
+                    //        lock (Thundagun.UpdatePacketBatches)
+                    //        {
+                    //            if (Thundagun.UpdatePacketBatches.Count > 0)
+                    //            {
+                    //                updates = Thundagun.UpdatePacketBatches.Dequeue();
+                    //            }
+                    //        }
+                    //    }
+                    //}
+
+                    if (updates != null)
+>>>>>>> Stashed changes
                     {
                         try
                         {
@@ -268,11 +360,28 @@ public static class FrooxEngineRunnerPatch
                         }
                         catch (Exception e)
                         {
+<<<<<<< Updated upstream
                             Thundagun.Msg(e);
                         }
                     }
                     lock (Thundagun.engineCompletionStatus)
                         Thundagun.engineCompletionStatus.EngineCompleted = false;
+=======
+                            var update = updates.Dequeue();
+                            try
+                            {
+                                update.Update();
+                            }
+                            catch (Exception e)
+                            {
+                                Thundagun.Msg(e);
+                            }
+                        }
+                        updates.Clear();
+                        updates.TrimExcess();
+                        
+                    }
+>>>>>>> Stashed changes
                 }
                 
                 if (UnityAssetIntegrator._instance is not null)
@@ -547,18 +656,61 @@ public static class SynchronizationManager
         {
             Thread.Sleep(ticktime - UnityLastUpdateInterval);
         }
+        if (Thundagun.Config.GetValue(Thundagun.EmulateVanilla))
+        {
+            bool status;
+            lock (Thundagun.UpdatePacketBatches)
+            {
+                status = Thundagun.UpdatePacketBatches.Count > 0;
+            }
+            while (!status)// && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
+                lock (Thundagun.UpdatePacketBatches)
+                {
+                    status = Thundagun.UpdatePacketBatches.Count > 0;
+                }
+            }
+        }
 
+<<<<<<< Updated upstream
+=======
+        var ticktime = TimeSpan.FromMilliseconds((1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate)));
+        if (DateTime.Now - UnityStartTime < ticktime)
+        {
+            Thread.Sleep(ticktime - UnityLastUpdateInterval);
+        }
+
+>>>>>>> Stashed changes
         UnityStartTime = DateTime.Now;
     }
     public static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
+<<<<<<< Updated upstream
         lock (Thundagun.engineCompletionStatus)
             Thundagun.engineCompletionStatus.EngineCompleted = true;
 
         while (Thundagun.engineCompletionStatus.EngineCompleted && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+=======
+        int count;
+        lock (Thundagun.UpdatePacketBatches)
+        {
+            count = Thundagun.UpdatePacketBatches.Count;
+        }
+        bool status;
+        lock (Thundagun.unityCompletionStatus)
+        {
+            status = Thundagun.unityCompletionStatus.Completed;
+        }
+        while (!status)// && count > Thundagun.Config.GetValue(Thundagun.BufferCount))
+>>>>>>> Stashed changes
         {
             Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
+            lock (Thundagun.unityCompletionStatus)
+            {
+                status = Thundagun.unityCompletionStatus.Completed;
+            }
         }
 
         var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
