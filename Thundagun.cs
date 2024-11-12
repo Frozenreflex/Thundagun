@@ -60,7 +60,7 @@ public class Thundagun : ResoniteMod
             false, value => value >= 1.0);
     [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
-        new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can be glitchy.", () => false,
+        new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can look glitchy.", () => false,
             false, value => true);
 
     public override void OnEngineInit()
