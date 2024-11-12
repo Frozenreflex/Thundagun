@@ -92,6 +92,7 @@ public class DestroyUnityComponentConnector<TC, TU> : DestroyComponentConnector<
 
     public override void Update()
     {
+        base.Update();
         if (OwnerConnector.UnityComponent != null)
         {
             OwnerConnector.UnityComponent.ClearConnector();
@@ -99,6 +100,5 @@ public class DestroyUnityComponentConnector<TC, TU> : DestroyComponentConnector<
                 Object.Destroy(OwnerConnector.UnityComponent);
             OwnerConnector.UnityComponent = default;
         }
-        base.Update();
     }
 }
