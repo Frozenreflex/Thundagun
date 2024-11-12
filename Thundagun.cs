@@ -20,6 +20,7 @@ using WorldConnector = Thundagun.NewConnectors.WorldConnector;
 using Serilog;
 using System.IO;
 using Thundagun.NewConnectors.AssetConnectors;
+using Leap.Unity.Query;
 
 namespace Thundagun;
 
@@ -28,16 +29,18 @@ public class Thundagun : ResoniteMod
     public override string Name => "Thundagun";
     public override string Author => "Fro Zen, 989onan, DoubleStyx, Nytra"; // in order of first commit
     public override string Version => "1.1.0-beta"; // change minor version for config "API" changes
-    
-    public static readonly Queue<IUpdatePacket> CurrentPackets = new();
+
+    public static Queue<IUpdatePacket> CurrentBatch = new();
+
+    public static readonly Queue<Queue<IUpdatePacket>> UpdatePacketBatches = new();
 
     public static Task FrooxEngineTask;
     
-    public static EngineCompletionStatus engineCompletionStatus = new EngineCompletionStatus();
+    public static UnityCompletionStatus unityCompletionStatus = new UnityCompletionStatus();
 
     public static void QueuePacket(IUpdatePacket packet)
     {
-        lock (CurrentPackets) CurrentPackets.Enqueue(packet);
+        lock (CurrentBatch) CurrentBatch.Enqueue(packet);
     }
 
     internal static ModConfiguration Config;
@@ -48,7 +51,7 @@ public class Thundagun : ResoniteMod
             false, value => true);
     [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<double> LoggingRate =
-      new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0, 
+      new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0,
           false, value => value >= 0.001 || value <= 1000.0);
     [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<double> MaxEngineTickRate =
@@ -58,12 +61,6 @@ public class Thundagun : ResoniteMod
     internal readonly static ModConfigurationKey<double> MaxUnityTickRate =
         new("MaxUnityTickRate", "Max Unity Tick Rate: The max rate per second at which Unity can update.", () => 1000.0,
             false, value => value >= 1.0);
-<<<<<<< Updated upstream
-    [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
-        new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime.", () => false,
-            false, value => true);
-=======
     //[AutoRegisterConfigKey]
     //internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
     //    new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can be glitchy.", () => false,
@@ -76,7 +73,6 @@ public class Thundagun : ResoniteMod
     //internal readonly static ModConfigurationKey<int> BufferCount =
     //  new("BufferCount", "Buffer Count: The max amount of extra update packet batches to allow in the queue before frooxengine waits for unity to be done rendering. Experimental.", () => 0,
     //      true, value => value >= 0);
->>>>>>> Stashed changes
 
     public override void OnEngineInit()
     {
@@ -249,7 +245,6 @@ public static class FrooxEngineRunnerPatch
                 UpdateFrameRate(__instance);
                 var starttime = DateTime.Now;
 
-
                 var engine = ____frooxEngine;
                 Thundagun.FrooxEngineTask ??= Task.Run(() =>
                 {
@@ -263,11 +258,9 @@ public static class FrooxEngineRunnerPatch
 
                         var beforeEngine = DateTime.Now;
                         engine.AssetsUpdated(total);
+                        
                         engine.RunUpdateLoop();
 
-<<<<<<< Updated upstream
-                        SynchronizationManager.OnResoniteUpdate();
-=======
                         Queue<IUpdatePacket> copy;
                         lock (Thundagun.CurrentBatch)
                         {
@@ -282,7 +275,6 @@ public static class FrooxEngineRunnerPatch
                         }
 
                         
->>>>>>> Stashed changes
                     }
                 });
 
@@ -296,19 +288,8 @@ public static class FrooxEngineRunnerPatch
 
                 var boilerplateTime = DateTime.Now;
                 
-
-                if (Thundagun.engineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+                if (true)
                 {
-<<<<<<< Updated upstream
-                    List<IUpdatePacket> updates;
-                    lock (Thundagun.CurrentPackets)
-                    {
-                        updates = [..Thundagun.CurrentPackets];
-                        Thundagun.CurrentPackets.Clear();
-                    }
-
-                    foreach (var update in updates)
-=======
                     Queue<IUpdatePacket> updates = null;
                     lock (Thundagun.UpdatePacketBatches)
                     {
@@ -352,21 +333,13 @@ public static class FrooxEngineRunnerPatch
                     //}
 
                     if (updates != null)
->>>>>>> Stashed changes
                     {
-                        try
+                        lock (Thundagun.unityCompletionStatus)
                         {
-                            update.Update();
+                            Thundagun.unityCompletionStatus.Completed = false;
                         }
-                        catch (Exception e)
+                        while (updates.Count > 0)
                         {
-<<<<<<< Updated upstream
-                            Thundagun.Msg(e);
-                        }
-                    }
-                    lock (Thundagun.engineCompletionStatus)
-                        Thundagun.engineCompletionStatus.EngineCompleted = false;
-=======
                             var update = updates.Dequeue();
                             try
                             {
@@ -381,11 +354,7 @@ public static class FrooxEngineRunnerPatch
                         updates.TrimExcess();
                         
                     }
->>>>>>> Stashed changes
                 }
-                
-                if (UnityAssetIntegrator._instance is not null)
-                    lock (assets_processed) assets_processed.Enqueue(UnityAssetIntegrator._instance.ProcessQueue1(1000));
 
                 var assetTime = DateTime.Now;
                 var loopTime = DateTime.Now;
@@ -399,6 +368,7 @@ public static class FrooxEngineRunnerPatch
                     ____frooxEngine.GlobalCoroutineManager.RunInSeconds(1f, () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
                     ____frooxEngine.GlobalCoroutineManager.RunInSeconds(5f, () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
                 }
+
                 UpdateQualitySettings(__instance);
 
                 var finishTime = DateTime.Now;
@@ -651,10 +621,9 @@ public static class SynchronizationManager
     {
         UnityLastUpdateInterval = DateTime.Now - UnityStartTime;
 
-        var ticktime = TimeSpan.FromMilliseconds((1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate)));
-        if (DateTime.Now - UnityStartTime < ticktime)
+        lock (Thundagun.unityCompletionStatus)
         {
-            Thread.Sleep(ticktime - UnityLastUpdateInterval);
+            Thundagun.unityCompletionStatus.Completed = true;
         }
         if (Thundagun.Config.GetValue(Thundagun.EmulateVanilla))
         {
@@ -673,26 +642,17 @@ public static class SynchronizationManager
             }
         }
 
-<<<<<<< Updated upstream
-=======
         var ticktime = TimeSpan.FromMilliseconds((1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate)));
         if (DateTime.Now - UnityStartTime < ticktime)
         {
             Thread.Sleep(ticktime - UnityLastUpdateInterval);
         }
 
->>>>>>> Stashed changes
         UnityStartTime = DateTime.Now;
     }
     public static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
-<<<<<<< Updated upstream
-        lock (Thundagun.engineCompletionStatus)
-            Thundagun.engineCompletionStatus.EngineCompleted = true;
-
-        while (Thundagun.engineCompletionStatus.EngineCompleted && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
-=======
         int count;
         lock (Thundagun.UpdatePacketBatches)
         {
@@ -704,7 +664,6 @@ public static class SynchronizationManager
             status = Thundagun.unityCompletionStatus.Completed;
         }
         while (!status)// && count > Thundagun.Config.GetValue(Thundagun.BufferCount))
->>>>>>> Stashed changes
         {
             Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
             lock (Thundagun.unityCompletionStatus)
@@ -723,7 +682,7 @@ public static class SynchronizationManager
     }
 }
 
-public class EngineCompletionStatus
+public class UnityCompletionStatus
 {
-    public bool EngineCompleted = false;
+    public bool Completed = false;
 }
