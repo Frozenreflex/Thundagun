@@ -32,7 +32,7 @@ public class Thundagun : ResoniteMod
 
     public static Queue<IUpdatePacket> CurrentBatch = new();
 
-    public static readonly Queue<Queue<IUpdatePacket>> UpdatePacketBatches = new();
+    public static readonly Queue<Queue<IUpdatePacket>> CompletedUpdates = new();
 
     public static Task FrooxEngineTask;
     
@@ -71,8 +71,12 @@ public class Thundagun : ResoniteMod
             false, value => true);
     //[AutoRegisterConfigKey]
     //internal readonly static ModConfigurationKey<int> BufferCount =
-    //  new("BufferCount", "Buffer Count: The max amount of extra update packet batches to allow in the queue before frooxengine waits for unity to be done rendering. Experimental.", () => 0,
+    //  new("BufferCount", "Buffer Count: The max amount of completed update packet batches to allow in the queue before frooxengine waits for unity to be ready for more. Experimental.", () => 0,
     //      true, value => value >= 0);
+    //[AutoRegisterConfigKey]
+    //internal readonly static ModConfigurationKey<int> UpdatesPerFrame =
+    //    new("UpdatesPerFrame", "Updates Per Frame: The maximum number of update packet batches Unity will process per frame.", () => 1,
+    //        false, value => value > 0);
 
     public override void OnEngineInit()
     {
@@ -193,6 +197,16 @@ class PatchDesktop
     }
 }
 
+[HarmonyPatch(typeof(FrooxEngine.UIX.Canvas), "StartCanvasUpdate")]
+class UIXPatch
+{
+    public static bool Prefix(FrooxEngine.UIX.Canvas __instance)
+    {
+        Thundagun.QueuePacket(new UIXUpdatePacket(__instance));
+        return false;
+    }
+}
+
 [HarmonyPatch(typeof(FrooxEngineRunner))]
 public static class FrooxEngineRunnerPatch
 {
@@ -266,15 +280,12 @@ public static class FrooxEngineRunnerPatch
                         {
                             copy = new Queue<IUpdatePacket>(Thundagun.CurrentBatch);
                             Thundagun.CurrentBatch.Clear();
-                            Thundagun.CurrentBatch.TrimExcess();
                         }
 
-                        lock (Thundagun.UpdatePacketBatches)
+                        lock (Thundagun.CompletedUpdates)
                         {
-                            Thundagun.UpdatePacketBatches.Enqueue(copy);
+                            Thundagun.CompletedUpdates.Enqueue(copy);
                         }
-
-                        
                     }
                 });
 
@@ -287,76 +298,94 @@ public static class FrooxEngineRunnerPatch
                 engine.InputInterface.UpdateWindowResolution(new int2(Screen.width, Screen.height));
 
                 var boilerplateTime = DateTime.Now;
-                
-                if (true)
+
+				// Begin update packet processing
+
+				//if (!Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+				//{
+				//    lock (Thundagun.UpdatePacketBatches)
+				//    {
+				//        if (Thundagun.UpdatePacketBatches.Count > 0)
+				//        {
+				//            updates = Thundagun.UpdatePacketBatches.Dequeue();
+				//        }
+				//    }
+				//}
+				//else
+				//{
+				//    lock (Thundagun.CurrentBatch)
+				//    {
+				//        if (Thundagun.CurrentBatch.Count > 0)
+				//        {
+				//            updates = new Queue<IUpdatePacket>(Thundagun.CurrentBatch);
+				//            Thundagun.CurrentBatch.Clear();
+				//            Thundagun.CurrentBatch.TrimExcess();
+				//        }
+				//    }
+				//    if (updates == null || updates.Count == 0)
+				//    {
+				//        lock (Thundagun.UpdatePacketBatches)
+				//        {
+				//            if (Thundagun.UpdatePacketBatches.Count > 0)
+				//            {
+				//                updates = Thundagun.UpdatePacketBatches.Dequeue();
+				//            }
+				//        }
+				//    }
+				//}
+
+                int count = 0;
+                lock (Thundagun.CompletedUpdates)
                 {
-                    Queue<IUpdatePacket> updates = null;
-                    lock (Thundagun.UpdatePacketBatches)
-                    {
-                        if (Thundagun.UpdatePacketBatches.Count > 0)
-                        {
-                            updates = Thundagun.UpdatePacketBatches.Dequeue();
-                        }
-                    }
-
-                    //if (!Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
-                    //{
-                    //    lock (Thundagun.UpdatePacketBatches)
-                    //    {
-                    //        if (Thundagun.UpdatePacketBatches.Count > 0)
-                    //        {
-                    //            updates = Thundagun.UpdatePacketBatches.Dequeue();
-                    //        }
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    lock (Thundagun.CurrentBatch)
-                    //    {
-                    //        if (Thundagun.CurrentBatch.Count > 0)
-                    //        {
-                    //            updates = new Queue<IUpdatePacket>(Thundagun.CurrentBatch);
-                    //            Thundagun.CurrentBatch.Clear();
-                    //            Thundagun.CurrentBatch.TrimExcess();
-                    //        }
-                    //    }
-                    //    if (updates == null || updates.Count == 0)
-                    //    {
-                    //        lock (Thundagun.UpdatePacketBatches)
-                    //        {
-                    //            if (Thundagun.UpdatePacketBatches.Count > 0)
-                    //            {
-                    //                updates = Thundagun.UpdatePacketBatches.Dequeue();
-                    //            }
-                    //        }
-                    //    }
-                    //}
-
-                    if (updates != null)
-                    {
-                        lock (Thundagun.unityCompletionStatus)
-                        {
-                            Thundagun.unityCompletionStatus.Completed = false;
-                        }
-                        while (updates.Count > 0)
-                        {
-                            var update = updates.Dequeue();
-                            try
-                            {
-                                update.Update();
-                            }
-                            catch (Exception e)
-                            {
-                                Thundagun.Msg(e);
-                            }
-                        }
-                        updates.Clear();
-                        updates.TrimExcess();
-                        
-                    }
+                    count = Thundagun.CompletedUpdates.Count;
                 }
+				if (count > 0)
+				{
+					lock (Thundagun.unityCompletionStatus)
+					{
+						Thundagun.unityCompletionStatus.Completed = false;
+					}
+					//int updatesProcessed = 0;
+					bool done = false;
+					//var maxUpdates = Thundagun.Config.GetValue(Thundagun.UpdatesPerFrame);
+					while (!done)// && updatesProcessed < Thundagun.Config.GetValue(Thundagun.UpdatesPerFrame))
+					{
+						Queue<IUpdatePacket> update = null;
+                        lock (Thundagun.CompletedUpdates)
+                        {
+							if (Thundagun.CompletedUpdates.Count > 0)
+							{
+								update = Thundagun.CompletedUpdates.Dequeue();
+							}
+							else
+							{
+								done = true;
+							}
+						}
 
-                var assetTime = DateTime.Now;
+						if (update != null)
+						{
+							foreach (var packet in update)
+                            {
+                                try
+								{
+									packet.Update();
+								}
+								catch (Exception e)
+								{
+									Thundagun.Msg(e);
+								}
+                            }
+                            //updatesProcessed++;
+                            if (Thundagun.Config.GetValue(Thundagun.EmulateVanilla))
+                            {
+                                done = true;
+                            }
+                        }
+					}
+				}
+
+				var assetTime = DateTime.Now;
                 var loopTime = DateTime.Now;
                 var updateTime = DateTime.Now;
 
@@ -625,19 +654,22 @@ public static class SynchronizationManager
         {
             Thundagun.unityCompletionStatus.Completed = true;
         }
+
         if (Thundagun.Config.GetValue(Thundagun.EmulateVanilla))
         {
             bool status;
-            lock (Thundagun.UpdatePacketBatches)
+            lock (Thundagun.CompletedUpdates)
             {
-                status = Thundagun.UpdatePacketBatches.Count > 0;
+                status = Thundagun.CompletedUpdates.Count > 0;
             }
-            while (!status)// && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+
+            // sleep unity while frooxengine has not submitted any updates
+            while (!status && Engine.Current.IsReady) // && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
             {
                 Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
-                lock (Thundagun.UpdatePacketBatches)
+                lock (Thundagun.CompletedUpdates)
                 {
-                    status = Thundagun.UpdatePacketBatches.Count > 0;
+                    status = Thundagun.CompletedUpdates.Count > 0;
                 }
             }
         }
@@ -653,25 +685,32 @@ public static class SynchronizationManager
     public static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
+
         int count;
-        lock (Thundagun.UpdatePacketBatches)
+        lock (Thundagun.CompletedUpdates)
         {
-            count = Thundagun.UpdatePacketBatches.Count;
-        }
-        bool status;
-        lock (Thundagun.unityCompletionStatus)
-        {
-            status = Thundagun.unityCompletionStatus.Completed;
-        }
-        while (!status)// && count > Thundagun.Config.GetValue(Thundagun.BufferCount))
-        {
-            Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
-            lock (Thundagun.unityCompletionStatus)
-            {
-                status = Thundagun.unityCompletionStatus.Completed;
-            }
+            count = Thundagun.CompletedUpdates.Count;
         }
 
+        if (Thundagun.Config.GetValue(Thundagun.EmulateVanilla))
+        {
+			bool status;
+			lock (Thundagun.unityCompletionStatus)
+			{
+				status = Thundagun.unityCompletionStatus.Completed;
+			}
+
+			//sleep FrooxEngine while Unity is processing update packets
+			while (!status)
+			{
+				Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
+				lock (Thundagun.unityCompletionStatus)
+				{
+					status = Thundagun.unityCompletionStatus.Completed;
+				}
+			}
+		}
+        
         var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
         if (DateTime.Now - ResoniteStartTime < ticktime)
         {
