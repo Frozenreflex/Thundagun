@@ -183,9 +183,12 @@ public static class FrooxEngine_FirstPersonTargettingController_Patch
     public static void OnBeforeHeadUpdate(FrooxEngine.FirstPersonTargettingController __instance)
     {
         var (pitch, yaw) = CameraRefresher.GetPitchAndYaw();
+        EarlyLogger.Log($"Pitch yaw OnBeforeHeadUpdate: {pitch} {yaw}");
 
         _horizontalAngleField.SetValue(__instance, yaw);
         float clampedPitch = MathX.Clamp(pitch, __instance.MinVerticalAngle, __instance.MaxVerticalAngle);
+        EarlyLogger.Log($"Clamped pitch: {clampedPitch}");
+        
         _verticalAngleField.SetValue(__instance, clampedPitch);
 
         float3 axis = float3.Up;
@@ -196,6 +199,8 @@ public static class FrooxEngine_FirstPersonTargettingController_Patch
 
         axis = float3.Forward;
         float3 forwardDirection = q * axis;
+        EarlyLogger.Log($"Forward direction: {forwardDirection}");
+        
         _headDirectionField.SetValue(__instance, forwardDirection);
         _forwardDirectionField.SetValue(__instance, forwardDirection);
 
@@ -525,7 +530,15 @@ public interface IUpdatePacket
 
 public static class EarlyLogger
 {
-    private static readonly string logFilePath = "ThundagunLogs/log.txt";
+    private static readonly string logDirectoryPath = "ThundagunLogs";
+    private static readonly string logFilename = $"log_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt";
+    private static readonly string logFilePath = Path.Combine(logDirectoryPath, logFilename);
+    
+    static EarlyLogger()
+    {
+        // Ensure the directory exists
+        Directory.CreateDirectory(logDirectoryPath);
+    }
 
     public static void Log(string message)
     {
@@ -624,6 +637,7 @@ public static class CameraRefresher
     public static void RefreshCamera()
     {
         Vector2 mouseDelta = UnityEngine.InputSystem.Mouse.current.delta.ReadValue();
+        EarlyLogger.Log($"Mouse delta: {mouseDelta.x}, {mouseDelta.y}");
 
         float mouseX = mouseDelta.x;
         float mouseY = mouseDelta.y;
@@ -632,12 +646,21 @@ public static class CameraRefresher
 
         float yaw = mouseX * sensitivity;
         float pitch = mouseY * sensitivity;
+        EarlyLogger.Log($"Yaw pitch {yaw}, {pitch}");
 
         UnityEngine.Transform headTransform = UnityEngine.Camera.main.transform.parent;
+        EarlyLogger.Log($"headTransform: {headTransform.rotation}");
+        
         headTransform.Rotate(Vector3.up, yaw, Space.Self);
+        EarlyLogger.Log($"After yaw rotation: {headTransform.rotation}");
+        
         headTransform.Rotate(Vector3.right, pitch, Space.Self);
+        EarlyLogger.Log($"After pitch rotation: {headTransform.rotation}");
+        
 
         headRotation = headTransform.rotation;
+        EarlyLogger.Log($"New head rotation: {headRotation}");
+        
     }
 
     public static (float pitch, float yaw) GetPitchAndYaw()
