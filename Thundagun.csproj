@@ -17,11 +17,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer" Version="2.2.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Serilog" Version="4.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <Reference Include="ResoniteModLoader">
       <HintPath Condition="Exists('$(ResonitePath)ResoniteModLoader.dll')">$(ResonitePath)ResoniteModLoader.dll</HintPath>
@@ -38,6 +42,9 @@
     </Reference>
     <Reference Include="Elements.Assets">
       <HintPath>$(ResonitePath)Resonite_Data/Managed/Elements.Assets.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VideoModule">
+      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.VideoModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityFrooxEngineRunner">
       <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityFrooxEngineRunner.dll</HintPath>
@@ -100,6 +107,14 @@
       <HintPath Condition="Exists('$(ResonitePath)0Harmony.dll')">$(ResonitePath)0Harmony.dll</HintPath>
       <HintPath Condition="Exists('$(ResonitePath)rml_libs/0Harmony.dll')">$(ResonitePath)rml_libs/0Harmony.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+	<Publicize Include="Assembly-CSharp:DuplicableDisplay._monitor" />
+	<Publicize Include="Assembly-CSharp:DuplicableDisplay._window" />
+	<Publicize Include="Assembly-CSharp:DuplicableDisplay.currentState" />
+	<Publicize Include="Assembly-CSharp:DuplicableDisplay._requests" />
+	<Publicize Include="Assembly-CSharp:DuplicableDisplay.UpdateProperties" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

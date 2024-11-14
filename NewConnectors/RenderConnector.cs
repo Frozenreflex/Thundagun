@@ -27,7 +27,7 @@ public class RenderConnector : IRenderConnector
 
     public Task<byte[]> Render(FrooxEngine.RenderSettings renderSettings) => renderQueue.Enqueue(renderSettings);
 
-    public byte[] RenderImmediate(FrooxEngine.RenderSettings renderSettings)
+    public byte[] RenderImmediate(RenderSettings renderSettings)
     {
         var texture2D = new UnityEngine.Texture2D(renderSettings.size.x, renderSettings.size.y,
             renderSettings.textureFormat.ToUnity(), false);
@@ -42,13 +42,13 @@ public class RenderConnector : IRenderConnector
         if (renderSettings.excludeObjects != null && renderSettings.excludeObjects.Count > 0)
         {
             list2 = Pool.BorrowList<GameObject>();
-            list2.AddRange(renderSettings.excludeObjects.Select(GetGameObject).Where(gameObject => gameObject != null));
+            list2.AddRange(renderSettings.excludeObjects.Where(gameObject => gameObject != null));
         }
 
         if (renderSettings.renderObjects != null && renderSettings.renderObjects.Count > 0)
         {
             list1 = Pool.BorrowList<GameObject>();
-            list1.AddRange(renderSettings.renderObjects.Select(GetGameObject).Where(gameObject => gameObject != null));
+            list1.AddRange(renderSettings.renderObjects.Where(gameObject => gameObject != null));
         }
 
         if (list1 != null)

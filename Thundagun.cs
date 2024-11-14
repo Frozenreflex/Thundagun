@@ -20,6 +20,7 @@ using UnityAssetIntegrator = Thundagun.NewConnectors.UnityAssetIntegrator;
 using WorldConnector = Thundagun.NewConnectors.WorldConnector;
 using Serilog;
 using System.IO;
+using Thundagun.NewConnectors.AssetConnectors;
 
 namespace Thundagun;
 
@@ -27,11 +28,13 @@ public class Thundagun : ResoniteMod
 {
     public override string Name => "Thundagun";
     public override string Author => "Fro Zen, 989onan, DoubleStyx, Nytra"; // in order of first commit
-    public override string Version => "1.0.1-beta"; // change minor version for config "API" changes
+    public override string Version => "1.1.2-beta"; // change minor version for config "API" changes
     
     public static readonly Queue<IUpdatePacket> CurrentPackets = new();
 
     public static Task FrooxEngineTask;
+    
+    public static EngineCompletionStatus engineCompletionStatus = new EngineCompletionStatus();
 
     public static void QueuePacket(IUpdatePacket packet)
     {
@@ -56,6 +59,10 @@ public class Thundagun : ResoniteMod
     internal readonly static ModConfigurationKey<double> MaxUnityTickRate =
         new("MaxUnityTickRate", "Max Unity Tick Rate: The max rate per second at which Unity can update.", () => 1000.0,
             false, value => value >= 1.0);
+    [AutoRegisterConfigKey]
+    internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
+        new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can look glitchy.", () => false,
+            false, value => true);
 
     public override void OnEngineInit()
     {
@@ -79,6 +86,21 @@ public class Thundagun : ResoniteMod
         PostProcessingInterface.SetupCamera = NewConnectors.CameraInitializer.SetupCamera;
 
         AsyncLogger.StartLogger();
+
+        void WorldAdded(World w)
+        {
+            if (!w.IsUserspace())
+            {
+                harmony.Patch(AccessTools.Method(typeof(DuplicableDisplay), "Update"), prefix: new HarmonyMethod(PatchDesktop.Prefix));
+                Engine.Current.WorldManager.WorldFocused -= WorldAdded;
+            }
+        }
+
+        // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
+        Engine.Current.RunPostInit(() => 
+        { 
+            Engine.Current.WorldManager.WorldFocused += WorldAdded;
+        });
     }
 
     public static void PatchEngineTypes()
@@ -137,6 +159,15 @@ public class Thundagun : ResoniteMod
             }
         }
     }
+}
+
+class PatchDesktop
+{
+	public static bool Prefix(DuplicableDisplay __instance, uDesktopDuplication.Monitor monitor)
+	{
+		Thundagun.QueuePacket(new DesktopUpdatePacket(__instance, monitor));
+		return false;
+	}
 }
 
 
@@ -226,7 +257,6 @@ public static class FrooxEngineRunnerPatch
                 UpdateFrameRate(__instance);
                 var starttime = DateTime.Now;
 
-
                 var engine = ____frooxEngine;
                 Thundagun.FrooxEngineTask ??= Task.Run(() =>
                 {
@@ -258,32 +288,35 @@ public static class FrooxEngineRunnerPatch
                 CameraRefresher.RefreshCamera();
 
                 var boilerplateTime = DateTime.Now;
-                List<IUpdatePacket> updates;
-                lock (Thundagun.CurrentPackets)
+                
+                if (Thundagun.engineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
                 {
-                    updates = [..Thundagun.CurrentPackets];
-                    Thundagun.CurrentPackets.Clear();
+                    List<IUpdatePacket> updates;
+                    lock (Thundagun.CurrentPackets)
+                    {
+                        updates = [..Thundagun.CurrentPackets];
+                        Thundagun.CurrentPackets.Clear();
+                    }
+
+                    foreach (var update in updates)
+                    {
+                        try
+                        {
+                            update.Update();
+
+                            
+                        }
+                        catch (Exception e)
+                        {
+                            Thundagun.Msg(e);
+                        }
+                    }
+                    lock (Thundagun.engineCompletionStatus)
+                        Thundagun.engineCompletionStatus.EngineCompleted = false;
                 }
-
-
-                if (UnityAssetIntegrator._instance is not null)
-                    lock (assets_processed) assets_processed.Enqueue(UnityAssetIntegrator._instance.ProcessQueue1(1000));
 
                 var assetTime = DateTime.Now;
                 var loopTime = DateTime.Now;
-
-                foreach (var update in updates)
-                {
-                    try
-                    {
-                        update.Update();
-                    }
-                    catch (Exception e)
-                    {
-                        Thundagun.Msg(e);
-                    }
-                }
-                
                 var updateTime = DateTime.Now;
 
                 if (focusedWorld != lastFocused)
@@ -557,12 +590,10 @@ public static class SynchronizationManager
     public static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
-        lock (NewConnectors.RenderQueueProcessor.engineCompletionStatus)
-        {
-            NewConnectors.RenderQueueProcessor.engineCompletionStatus.EngineCompleted = true;
-        }
+        lock (Thundagun.engineCompletionStatus)
+            Thundagun.engineCompletionStatus.EngineCompleted = true;
 
-        while (NewConnectors.RenderQueueProcessor.engineCompletionStatus.EngineCompleted)
+        while (Thundagun.engineCompletionStatus.EngineCompleted && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
         {
             Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
         }
@@ -576,6 +607,12 @@ public static class SynchronizationManager
         ResoniteStartTime = DateTime.Now;
     }
 }
+
+public class EngineCompletionStatus
+{
+    public bool EngineCompleted = false;
+}
+
 
 
 // optional but recommended:
