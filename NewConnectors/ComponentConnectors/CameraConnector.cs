@@ -112,8 +112,8 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
         Texture = owner.Owner.RenderTexture?.Asset?.Connector as RenderTextureConnector;
         DoubleBuffer = owner.Owner.DoubleBuffered.Value;
 
-        SelectiveRender = owner.Owner.SelectiveRender.Select(i => i.Connector as SlotConnector).Where(i => i is not null).ToList();
-        ExcludeRender = owner.Owner.ExcludeRender.Select(i => i.Connector as SlotConnector).Where(i => i is not null).ToList();
+        SelectiveRender = owner.Owner.SelectiveRender.Select(i => i?.Connector as SlotConnector).Where(i => i is not null).ToList();
+        ExcludeRender = owner.Owner.ExcludeRender.Select(i => i?.Connector as SlotConnector).Where(i => i is not null).ToList();
 
         CullingMask = owner.Owner.RenderPrivateUI ? CameraConnector.PrivateLayerMask : CameraConnector.LayerMask;
         Active = owner.Owner.Enabled && owner.Owner.Slot.IsActive;
@@ -155,8 +155,8 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
         Owner.RenderEx.DoubleBuffer = DoubleBuffer && !PostprocessingSetup;
         Owner.RenderEx.SelectiveRender.Clear();
         Owner.RenderEx.ExcludeRender.Clear();
-        Owner.RenderEx.SelectiveRender.AddRange(SelectiveRender.Select(i => i.GeneratedGameObject).Where(i => i is not null));
-        Owner.RenderEx.ExcludeRender.AddRange(ExcludeRender.Select(i => i.GeneratedGameObject).Where(i => i is not null));
+        Owner.RenderEx.SelectiveRender.AddRange(SelectiveRender.Select(i => i?.GeneratedGameObject).Where(i => i is not null));
+        Owner.RenderEx.ExcludeRender.AddRange(ExcludeRender.Select(i => i?.GeneratedGameObject).Where(i => i is not null));
 
         Owner.UnityCamera.cullingMask = Owner.RenderEx.SelectiveRender.Count <= 0
             ? CullingMask
