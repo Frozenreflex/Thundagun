@@ -146,7 +146,6 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
             CameraSettings settings = new CameraSettings();
             settings.MotionBlur = Owner.MotionBlur;
             settings.ScreenSpaceReflection = Owner.ScreenspaceReflections;
-            //settings.IsVR = false;
             settings.SetupPostProcessing = true;
             if (SetupPostProcessing) CameraInitializer.SetupPostProcessing(Owner.UnityCamera, settings);
             else CameraInitializer.RemovePostProcessing(Owner.UnityCamera);
