@@ -65,7 +65,7 @@ public class Thundagun : ResoniteMod
 
     public override void OnEngineInit()
     {
-        var harmony = new Harmony("Thundagun");
+        var harmony = new Harmony("com.doublestyx.Thundagun");
         Config = GetConfiguration();
 
         PatchEngineTypes();
