@@ -10,6 +10,8 @@
     <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/</ResonitePath>
     <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/</ResonitePath>
     <LangVersion>latest</LangVersion>
+    <AssemblyVersion>1.1.1</AssemblyVersion>
+    <FileVersion>1.1.1</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
