@@ -27,7 +27,7 @@ public class Thundagun : ResoniteMod
 {
     public override string Name => "Thundagun";
     public override string Author => "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK"; // in order of first commit
-    public override string Version => "1.1.1-beta"; // change minor version for config "API" changes
+    public override string Version => "1.1.1"; // change minor version for config "API" changes
     
     public static readonly Queue<IUpdatePacket> CurrentPackets = new();
 
@@ -65,7 +65,7 @@ public class Thundagun : ResoniteMod
 
     public override void OnEngineInit()
     {
-        var harmony = new Harmony("com.doublestyx.Thundagun");
+        var harmony = new Harmony("com.frozenreflex.Thundagun");
         Config = GetConfiguration();
 
         PatchEngineTypes();
