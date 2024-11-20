@@ -83,8 +83,8 @@ public class Thundagun : ResoniteMod
 
         var workerInitializerMethod = typeof(WorkerInitializer)
             .GetMethods(AccessTools.all)
-            .First(i => i.Name.Contains("Initialize") && i.GetParameters().Length == 1 &&
-                        i.GetParameters()[0].ParameterType == typeof(Type));
+            .First(static i => i.Name.Contains("Initialize") && i.GetParameters().Length == 1 &&
+                               i.GetParameters()[0].ParameterType == typeof(Type));
         var workerInitializerPatch =
             typeof(WorkerInitializerPatch).GetMethod(nameof(WorkerInitializerPatch.Initialize));
 
@@ -99,6 +99,7 @@ public class Thundagun : ResoniteMod
         void WorldAdded(World w)
         {
             if (w.IsUserspace()) return;
+
             harmony.Patch(AccessTools.Method(typeof(DuplicableDisplay), "Update"),
                 new HarmonyMethod(PatchDesktop.Prefix));
             Engine.Current.WorldManager.WorldFocused -= WorldAdded;
@@ -111,7 +112,7 @@ public class Thundagun : ResoniteMod
     private static void PatchEngineTypes()
     {
         var engineTypes = typeof(Slot).Assembly.GetTypes()
-            .Where(i => i.GetCustomAttribute<ImplementableClassAttribute>() is not null).ToList();
+            .Where(static i => i.GetCustomAttribute<ImplementableClassAttribute>() is not null).ToList();
         foreach (var type in engineTypes)
         {
             var field1 = type.GetField("__connectorType",
@@ -152,6 +153,7 @@ public class Thundagun : ResoniteMod
         Msg("Attempting to patch component types");
 
         if (initInfos == null) return;
+
         {
             foreach (var t in initInfos.Keys)
             {
@@ -159,11 +161,10 @@ public class Thundagun : ResoniteMod
                 var connectorType =
                     typeof(IConnector<>).MakeGenericType(!t.IsGenericType ? t : t.GetGenericTypeDefinition());
                 var array = types.Where(j => j.GetInterfaces().Any(i => i == connectorType)).ToArray();
-                if (array.Length == 1)
-                {
-                    initInfos[t].connectorType = array[0];
-                    Msg("Patched " + t.Name);
-                }
+                if (array.Length != 1) continue;
+
+                initInfos[t].connectorType = array[0];
+                Msg("Patched " + t.Name);
             }
         }
     }
@@ -193,6 +194,7 @@ public static class FrooxEngineRunnerPatch
     [HarmonyPrefix]
     [HarmonyPatch("Update")]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public static bool Update(FrooxEngineRunner __instance,
         ref Engine ____frooxEngine, ref bool ____shutdownRequest, ref Stopwatch ____externalUpdate,
         ref World ____lastFocusedWorld,
@@ -202,6 +204,7 @@ public static class FrooxEngineRunnerPatch
         shutdown = ____shutdownRequest;
         if (!__instance.IsInitialized || ____frooxEngine == null)
             return false;
+
         if (____shutdownRequest)
         {
             __instance.Shutdown(ref ____frooxEngine);
@@ -239,7 +242,9 @@ public static class FrooxEngineRunnerPatch
                         lock (AssetsProcessed)
                         {
                             while (AssetsProcessed.Any())
+                            {
                                 total += AssetsProcessed.Dequeue();
+                            }
                         }
 
                         engine.AssetsUpdated(total);
@@ -306,7 +311,7 @@ public static class FrooxEngineRunnerPatch
             catch (Exception ex)
             {
                 ResoniteMod.Msg($"Exception updating FrooxEngine:\n{ex}");
-                var wait = new Task(() => Task.Delay(10000));
+                var wait = new Task(static () => Task.Delay(10000));
                 wait.Start();
                 wait.Wait();
                 UniLog.Error($"Exception updating FrooxEngine:\n{ex}");
@@ -326,6 +331,7 @@ public static class FrooxEngineRunnerPatch
     private static void PatchHeadOutput(HeadOutput output)
     {
         if (output == null) return;
+
         var cameraSettings = new CameraSettings
         {
             IsPrimary = true,
@@ -354,6 +360,7 @@ public static class FrooxEngineRunnerPatch
         AudioListener listener, ref List<World> worlds)
     {
         if (focusedWorld == null) return;
+
         var num = engine.InputInterface.VR_Active ? 1 : 0;
         var headOutput1 = num != 0 ? vr : screen;
         var headOutput2 = num != 0 ? screen : vr;
@@ -380,6 +387,7 @@ public static class FrooxEngineRunnerPatch
         foreach (var world in worlds)
         {
             if (world.Focus != World.WorldFocus.Overlay && world.Focus != World.WorldFocus.PrivateOverlay) continue;
+
             var transform2 = ((WorldConnector)world.Connector).WorldRoot.transform;
             var userGlobalPosition = world.LocalUserGlobalPosition;
             var userGlobalRotation = world.LocalUserGlobalRotation;
@@ -443,6 +451,7 @@ public static class AssetInitializerPatch
         {
             if (!t.IsClass || t.IsAbstract || !typeof(Asset).IsAssignableFrom(t))
                 return false;
+
             return t.InheritsFromGeneric(typeof(ImplementableAsset<,>)) ||
                    t.InheritsFromGeneric(typeof(DynamicImplementableAsset<>));
         }).ToList();
@@ -452,6 +461,7 @@ public static class AssetInitializerPatch
             var connectorType = t.GetProperty("Connector",
                 BindingFlags.FlattenHierarchy | BindingFlags.Instance | BindingFlags.Public)?.PropertyType;
             if (connectorType is null) continue;
+
             var list = ourTypes.Where(i => connectorType.IsAssignableFrom(i)).ToList();
             if (list.Count == 1) Connectors.Add(t, list[0]);
         }
@@ -463,6 +473,7 @@ public static class AssetInitializerPatch
     public static bool GetConnectorType(Asset asset, ref Type __result)
     {
         if (!Connectors.TryGetValue(asset.GetType(), out var t)) return true;
+
         __result = t;
         return false;
     }
@@ -487,11 +498,10 @@ public static class WorkerInitializerPatch
             .MakeGenericType(workerType.IsGenericType ? workerType.GetGenericTypeDefinition() : workerType);
         var array = types.Where(j => j.GetInterfaces().Any(i => i == connectorType)).ToArray();
 
-        if (array.Length == 1)
-        {
-            __result.connectorType = array[0];
-            ResoniteMod.Msg("Patched " + workerType.Name);
-        }
+        if (array.Length != 1) return;
+
+        __result.connectorType = array[0];
+        ResoniteMod.Msg("Patched " + workerType.Name);
     }
 }
 
@@ -510,7 +520,7 @@ public static class EarlyLogger
 {
     private const string LogFilePath = "ThundagunLogs/log.txt";
 
-    public static void Log(string message)
+    internal static void Log(string message)
     {
         try
         {
@@ -529,10 +539,11 @@ public static class AsyncLogger
     private static Task asyncLoggerTask;
 
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
-    public static void StartLogger()
+    internal static void StartLogger()
     {
         if (asyncLoggerTask is not null)
             return;
+
         asyncLoggerTask = Task.Run(() =>
         {
             while (true)
@@ -550,12 +561,12 @@ public static class AsyncLogger
 
 public static class SynchronizationManager
 {
-    public static DateTime UnityStartTime { get; private set; } = DateTime.Now;
-    public static DateTime ResoniteStartTime { get; private set; } = DateTime.Now;
-    public static TimeSpan UnityLastUpdateInterval { get; private set; } = TimeSpan.Zero;
-    public static TimeSpan ResoniteLastUpdateInterval { get; private set; } = TimeSpan.Zero;
+    internal static DateTime UnityStartTime { get; private set; } = DateTime.Now;
+    internal static DateTime ResoniteStartTime { get; private set; } = DateTime.Now;
+    internal static TimeSpan UnityLastUpdateInterval { get; private set; } = TimeSpan.Zero;
+    internal static TimeSpan ResoniteLastUpdateInterval { get; private set; } = TimeSpan.Zero;
 
-    public static void OnUnityUpdate()
+    internal static void OnUnityUpdate()
     {
         UnityLastUpdateInterval = DateTime.Now - UnityStartTime;
 
@@ -565,7 +576,7 @@ public static class SynchronizationManager
         UnityStartTime = DateTime.Now;
     }
 
-    public static void OnResoniteUpdate()
+    internal static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
         lock (Thundagun.EngineCompletionStatus)
