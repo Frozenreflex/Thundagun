@@ -1,34 +1,49 @@
+#region
+
 using FrooxEngine;
 using UnityEngine;
+using UnityFrooxEngineRunner;
+
+#endregion
 
 namespace Thundagun.NewConnectors;
 
 public class WorldConnector : IWorldConnector
 {
-    public World Owner { get; set; }
     public GameObject WorldRoot { get; set; }
+    public World Owner { get; set; }
 
     public void Initialize(World owner)
     {
         Owner = owner;
         Thundagun.QueuePacket(new InitializeWorldConnector(this));
     }
+
+    public void ChangeFocus(World.WorldFocus focus)
+    {
+        Thundagun.QueuePacket(new ChangeFocusWorldConnector(this, focus));
+    }
+
+    public void Destroy()
+    {
+        Thundagun.QueuePacket(new DestroyWorldConnector(this));
+    }
+
     public static void SetLayerRecursively(Transform transform, int layer)
     {
         transform.gameObject.layer = layer;
         for (var index = 0; index < transform.childCount; ++index)
             SetLayerRecursively(transform.GetChild(index), layer);
     }
-    public void ChangeFocus(World.WorldFocus focus) => Thundagun.QueuePacket(new ChangeFocusWorldConnector(this, focus));
-    public void Destroy() => Thundagun.QueuePacket(new DestroyWorldConnector(this));
 }
 
 public class InitializeWorldConnector : UpdatePacket<WorldConnector>
 {
-    public UnityFrooxEngineRunner.WorldManagerConnector connector;
+    public WorldManagerConnector connector;
+
     public InitializeWorldConnector(WorldConnector owner) : base(owner)
     {
-        connector = owner.Owner.WorldManager.Connector as UnityFrooxEngineRunner.WorldManagerConnector;
+        connector = owner.Owner.WorldManager.Connector as WorldManagerConnector;
     }
 
     public override void Update()
@@ -41,9 +56,11 @@ public class InitializeWorldConnector : UpdatePacket<WorldConnector>
         Owner.WorldRoot.transform.localScale = Vector3.one;
     }
 }
+
 public class ChangeFocusWorldConnector : UpdatePacket<WorldConnector>
 {
     public World.WorldFocus Focus;
+
     public ChangeFocusWorldConnector(WorldConnector owner, World.WorldFocus focus) : base(owner)
     {
         Focus = focus;

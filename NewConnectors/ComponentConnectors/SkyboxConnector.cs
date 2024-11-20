@@ -1,12 +1,19 @@
+#region
+
 using FrooxEngine;
 using UnityFrooxEngineRunner;
 using MaterialConnector = Thundagun.NewConnectors.AssetConnectors.MaterialConnector;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
 public class SkyboxConnector : ComponentConnectorSingle<Skybox>
 {
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesSkyboxConnector(this));
+    public override void ApplyChanges()
+    {
+        Thundagun.QueuePacket(new ApplyChangesSkyboxConnector(this));
+    }
 }
 
 public class ApplyChangesSkyboxConnector : UpdatePacket<SkyboxConnector>

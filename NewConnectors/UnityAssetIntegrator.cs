@@ -1,32 +1,36 @@
+#region
+
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Elements.Core;
 using FrooxEngine;
 using NativeGraphics.NET;
+using SharpDX.Direct3D11;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Scripting;
 using UnityFrooxEngineRunner;
+using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
+using Texture2D = UnityEngine.Texture2D;
+
+#endregion
 
 namespace Thundagun.NewConnectors;
 
 public class UnityAssetIntegrator : IAssetManagerConnector
 {
     public static UnityAssetIntegrator _instance;
-    internal static SharpDX.Direct3D11.Device _dx11device;
-    private ConcurrentQueue<QueueAction> _highpriorityQueue = new();
-    private ConcurrentQueue<QueueAction> _processingQueue = new();
-    private ConcurrentQueue<QueueAction> renderThreadQueue = new();
-    private ConcurrentQueue<Action> _taskQueue = new();
-    private Stopwatch _stopwatch = new();
+    internal static Device _dx11device;
+    private readonly ConcurrentQueue<QueueAction> _highpriorityQueue = new();
     private double _maxMilliseconds;
+    private readonly ConcurrentQueue<QueueAction> _processingQueue = new();
+    private readonly Stopwatch _stopwatch = new();
+    private readonly ConcurrentQueue<Action> _taskQueue = new();
     private IntPtr renderThreadPointer;
+    private readonly ConcurrentQueue<QueueAction> renderThreadQueue = new();
     public Engine Engine => AssetManager.Engine;
 
     public AssetManager AssetManager { get; private set; }
@@ -36,22 +40,6 @@ public class UnityAssetIntegrator : IAssetManagerConnector
     public static bool IsDebugBuild { get; private set; }
 
     public bool RenderThreadProcessingEnabled { get; private set; }
-
-    [MonoPInvokeCallback(typeof(RenderEventDelegate))]
-    private static void RenderThreadCallback()
-    {
-        try
-        {
-            _instance.ProcessQueue2(MathX.Max(_instance._maxMilliseconds, 2.0), true);
-        }
-        catch (Exception ex)
-        {
-            UniLog.Error("Exception in render thread queue processing:\n" + ex);
-        }
-        finally
-        {
-        }
-    }
 
 
     public async Task Initialize(AssetManager owner)
@@ -65,24 +53,25 @@ public class UnityAssetIntegrator : IAssetManagerConnector
         {
             GraphicsDeviceType = SystemInfo.graphicsDeviceType;
             IsEditor = Application.isEditor;
-            IsDebugBuild = UnityEngine.Debug.isDebugBuild;
+            IsDebugBuild = Debug.isDebugBuild;
             UniLog.Log($"Graphics Device Type: {GraphicsDeviceType}");
             switch (GraphicsDeviceType)
             {
                 case GraphicsDeviceType.Direct3D11:
-                    {
-                        var texture2D = new UnityEngine.Texture2D(4, 4);
-                        _dx11device = new SharpDX.Direct3D11.Texture2D(texture2D.GetNativeTexturePtr()).Device;
-                        if (texture2D) UnityEngine.Object.Destroy(texture2D);
-                        RenderThreadProcessingEnabled = true;
-                        break;
-                    }
+                {
+                    var texture2D = new Texture2D(4, 4);
+                    _dx11device = new SharpDX.Direct3D11.Texture2D(texture2D.GetNativeTexturePtr()).Device;
+                    if (texture2D) Object.Destroy(texture2D);
+                    RenderThreadProcessingEnabled = true;
+                    break;
+                }
                 case GraphicsDeviceType.OpenGLES2:
                 case GraphicsDeviceType.OpenGLES3:
                 case GraphicsDeviceType.OpenGLCore:
                     RenderThreadProcessingEnabled = true;
                     break;
             }
+
             if (RenderThreadProcessingEnabled)
             {
                 Callback.SetUpdateCallback(RenderThreadCallback);
@@ -90,6 +79,26 @@ public class UnityAssetIntegrator : IAssetManagerConnector
             }
         });
     }
+
+    public int ProcessQueue(double maxMilliseconds)
+    {
+        Thundagun.QueuePacket(new ProcessQueueUnityAssetIntegrator(this, maxMilliseconds));
+        return 0;
+    }
+
+    [MonoPInvokeCallback(typeof(RenderEventDelegate))]
+    private static void RenderThreadCallback()
+    {
+        try
+        {
+            _instance.ProcessQueue2(MathX.Max(_instance._maxMilliseconds, 2.0), true);
+        }
+        catch (Exception ex)
+        {
+            UniLog.Error("Exception in render thread queue processing:\n" + ex);
+        }
+    }
+
     public void EnqueueRenderThreadProcessing(IEnumerator coroutine)
     {
         if (!RenderThreadProcessingEnabled) throw new NotSupportedException("Render Thread Processing is not enabled");
@@ -101,30 +110,27 @@ public class UnityAssetIntegrator : IAssetManagerConnector
         if (!RenderThreadProcessingEnabled) throw new NotSupportedException("Render Thread Processing is not enabled");
         renderThreadQueue.Enqueue(new QueueAction(action));
     }
+
     public void EnqueueProcessing(IEnumerator coroutine, bool highPriority)
     {
         if (highPriority) _highpriorityQueue.Enqueue(new QueueAction(coroutine));
         else _processingQueue.Enqueue(new QueueAction(coroutine));
     }
+
     public void EnqueueProcessing(Action action, bool highPriority)
     {
         if (highPriority) _highpriorityQueue.Enqueue(new QueueAction(action));
         else _processingQueue.Enqueue(new QueueAction(action));
     }
 
-    public void EnqueueTask(Action action) => _taskQueue.Enqueue(action);
-
-    public int ProcessQueue(double maxMilliseconds)
+    public void EnqueueTask(Action action)
     {
-        Thundagun.QueuePacket(new ProcessQueueUnityAssetIntegrator(this, maxMilliseconds));
-        return 0;
+        _taskQueue.Enqueue(action);
     }
 
     public int ProcessQueue1(double maxMilliseconds)
     {
-
         while (_taskQueue.TryDequeue(out var val))
-        {
             try
             {
                 val();
@@ -133,11 +139,8 @@ public class UnityAssetIntegrator : IAssetManagerConnector
             {
                 UniLog.Error("Exception running AssetIntegrator task:\n" + ex);
             }
-        }
-        if (RenderThreadProcessingEnabled && renderThreadQueue.Count > 0)
-        {
-            GL.IssuePluginEvent(renderThreadPointer, 0);
-        }
+
+        if (RenderThreadProcessingEnabled && renderThreadQueue.Count > 0) GL.IssuePluginEvent(renderThreadPointer, 0);
         return ProcessQueue2(maxMilliseconds, false);
     }
 
@@ -162,7 +165,10 @@ public class UnityAssetIntegrator : IAssetManagerConnector
                     if (_highpriorityQueue.TryPeek(out val)) hasPriorityQueue = true;
                     else if (_processingQueue.TryPeek(out val)) hasQueue = true;
                 }
-                else hasQueue = renderThreadQueue.TryPeek(out val);
+                else
+                {
+                    hasQueue = renderThreadQueue.TryPeek(out val);
+                }
 
                 if (!(hasPriorityQueue || hasQueue)) break;
 
@@ -174,7 +180,10 @@ public class UnityAssetIntegrator : IAssetManagerConnector
                     val.Action();
                     actionDone = true;
                 }
-                else if (!val.Coroutine.MoveNext()) actionDone = true;
+                else if (!val.Coroutine.MoveNext())
+                {
+                    actionDone = true;
+                }
 
                 if (actionDone)
                 {
@@ -183,12 +192,15 @@ public class UnityAssetIntegrator : IAssetManagerConnector
                         if (hasPriorityQueue) _highpriorityQueue.TryDequeue(out _);
                         else _processingQueue.TryDequeue(out _);
                     }
-                    else renderThreadQueue.TryDequeue(out _);
+                    else
+                    {
+                        renderThreadQueue.TryDequeue(out _);
+                    }
                 }
+
                 elapsedMilliseconds2 = _stopwatch.GetElapsedMilliseconds();
                 num2 = elapsedMilliseconds2 - elapsedMilliseconds;
-            }
-            while (elapsedMilliseconds2 + num2 < maxMilliseconds);
+            } while (elapsedMilliseconds2 + num2 < maxMilliseconds);
         }
         catch (Exception ex)
         {
@@ -204,6 +216,7 @@ public class UnityAssetIntegrator : IAssetManagerConnector
                 renderThreadQueue.TryDequeue(out _);
             }
         }
+
         _maxMilliseconds = maxMilliseconds - _stopwatch.GetElapsedMilliseconds();
         return num;
     }
@@ -230,7 +243,14 @@ public class UnityAssetIntegrator : IAssetManagerConnector
 public class ProcessQueueUnityAssetIntegrator : UpdatePacket<UnityAssetIntegrator>
 {
     private readonly double _maxMilliseconds;
-    public ProcessQueueUnityAssetIntegrator(UnityAssetIntegrator owner, double maxMilliseconds) : base(owner) =>
+
+    public ProcessQueueUnityAssetIntegrator(UnityAssetIntegrator owner, double maxMilliseconds) : base(owner)
+    {
         _maxMilliseconds = maxMilliseconds;
-    public override void Update() => Engine.Current.AssetsUpdated(Owner.ProcessQueue1(_maxMilliseconds));
+    }
+
+    public override void Update()
+    {
+        Engine.Current.AssetsUpdated(Owner.ProcessQueue1(_maxMilliseconds));
+    }
 }

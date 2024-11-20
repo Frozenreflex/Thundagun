@@ -1,4 +1,5 @@
-using System;
+#region
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,6 +7,13 @@ using Elements.Core;
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+using Camera = UnityEngine.Camera;
+using Material = UnityEngine.Material;
+using Rect = UnityEngine.Rect;
+using RenderTexture = UnityEngine.RenderTexture;
+using Texture2D = UnityEngine.Texture2D;
+
+#endregion
 
 namespace Thundagun.NewConnectors;
 
@@ -13,7 +21,7 @@ public class RenderConnector : IRenderConnector
 {
     public static bool _initialized;
     public static Camera360 camera360;
-    public static UnityEngine.Camera camera;
+    public static Camera camera;
     public static RenderQueueProcessor renderQueue;
     public static int _privateLayerMask;
     public static int _hiddenLayerMask;
@@ -23,17 +31,47 @@ public class RenderConnector : IRenderConnector
         Thundagun.QueuePacket(new InitializeRenderConnector(this));
     }
 
-    public static GameObject GetGameObject(Slot slot) => ((SlotConnector)slot.Connector).GeneratedGameObject;
+    public Task<byte[]> Render(FrooxEngine.RenderSettings renderSettings)
+    {
+        return renderQueue.Enqueue(renderSettings);
+    }
 
-    public Task<byte[]> Render(FrooxEngine.RenderSettings renderSettings) => renderQueue.Enqueue(renderSettings);
+    public void UpdateDynamicGI(bool immediate)
+    {
+        DynamicGIManager.ScheduleDynamicGIUpdate(immediate);
+    }
+
+    public void RegisterCamera(FrooxEngine.Camera camera)
+    {
+        RegisterUnityCamera(camera.ToUnity());
+    }
+
+    public void SetupPostProcessing(FrooxEngine.Camera camera, bool motionBlur, bool screenspaceReflections)
+    {
+        var settings = new CameraSettings();
+        settings.MotionBlur = motionBlur;
+        settings.ScreenSpaceReflection = screenspaceReflections;
+        CameraInitializer.SetupPostProcessing(camera.ToUnity(), settings);
+    }
+
+
+    public void RemovePostProcessing(FrooxEngine.Camera camera)
+    {
+        CameraInitializer.RemovePostProcessing(camera.ToUnity());
+    }
+
+    public static GameObject GetGameObject(Slot slot)
+    {
+        return ((SlotConnector)slot.Connector).GeneratedGameObject;
+    }
 
     public byte[] RenderImmediate(RenderSettings renderSettings)
     {
-        var texture2D = new UnityEngine.Texture2D(renderSettings.size.x, renderSettings.size.y,
+        var texture2D = new Texture2D(renderSettings.size.x, renderSettings.size.y,
             renderSettings.textureFormat.ToUnity(), false);
-        var temporary = UnityEngine.RenderTexture.GetTemporary(renderSettings.size.x, renderSettings.size.y, 24,
+        var temporary = RenderTexture.GetTemporary(renderSettings.size.x, renderSettings.size.y, 24,
             RenderTextureFormat.ARGB32);
-        var active = UnityEngine.RenderTexture.active;
+        var active = RenderTexture.active;
         var dictionary = Pool.BorrowDictionary<GameObject, int>();
         var list1 = (List<GameObject>)null;
         var list2 = (List<GameObject>)null;
@@ -57,7 +95,9 @@ public class RenderConnector : IRenderConnector
             RenderHelper.RestoreHiearachyLayer(list2, dictionary);
         }
         else if (list2 != null)
+        {
             RenderHelper.SetHiearchyLayer(list2, layer, dictionary);
+        }
 
         if (renderSettings.fov >= 180.0)
         {
@@ -119,34 +159,20 @@ public class RenderConnector : IRenderConnector
             Pool.Return(ref list1);
         if (list2 != null)
             Pool.Return(ref list2);
-        UnityEngine.RenderTexture.active = temporary;
-        texture2D.ReadPixels(new UnityEngine.Rect(0.0f, 0.0f, renderSettings.size.x, renderSettings.size.y), 0, 0,
+        RenderTexture.active = temporary;
+        texture2D.ReadPixels(new Rect(0.0f, 0.0f, renderSettings.size.x, renderSettings.size.y), 0, 0,
             false);
-        UnityEngine.RenderTexture.active = active;
-        UnityEngine.RenderTexture.ReleaseTemporary(temporary);
+        RenderTexture.active = active;
+        RenderTexture.ReleaseTemporary(temporary);
         var rawTextureData = texture2D.GetRawTextureData();
-        UnityEngine.Object.Destroy(texture2D);
+        Object.Destroy(texture2D);
         return rawTextureData;
     }
 
-    public void UpdateDynamicGI(bool immediate) => DynamicGIManager.ScheduleDynamicGIUpdate(immediate);
-
-    public void RegisterCamera(FrooxEngine.Camera camera) => RegisterUnityCamera(camera.ToUnity());
-
-    public static void RegisterUnityCamera(UnityEngine.Camera camera) =>
-        camera.gameObject.AddComponent<ShaderCameraProperties>();
-
-    public void SetupPostProcessing(FrooxEngine.Camera camera, bool motionBlur, bool screenspaceReflections)
+    public static void RegisterUnityCamera(Camera camera)
     {
-        CameraSettings settings = new CameraSettings();
-        settings.MotionBlur = motionBlur;
-        settings.ScreenSpaceReflection = screenspaceReflections;
-        CameraInitializer.SetupPostProcessing(camera.ToUnity(), settings);
+        camera.gameObject.AddComponent<ShaderCameraProperties>();
     }
-
-
-    public void RemovePostProcessing(FrooxEngine.Camera camera) =>
-        CameraInitializer.RemovePostProcessing(camera.ToUnity());
 }
 
 public class InitializeRenderConnector : UpdatePacket<RenderConnector>
@@ -162,12 +188,12 @@ public class InitializeRenderConnector : UpdatePacket<RenderConnector>
         RenderConnector._initialized = true;
         var gameObject1 = new GameObject("CaptureCam");
         var gameObject2 = new GameObject("CaptureCam360");
-        RenderConnector.camera = gameObject1.AddComponent<UnityEngine.Camera>();
+        RenderConnector.camera = gameObject1.AddComponent<Camera>();
         gameObject1.AddComponent<ShaderCameraProperties>();
         RenderConnector.camera.stereoTargetEye = StereoTargetEyeMask.None;
         RenderConnector.camera.enabled = false;
         RenderConnector.camera.nearClipPlane = 0.05f;
-        var settings = new CameraSettings()
+        var settings = new CameraSettings
         {
             IsSingleCapture = true,
             SetupPostProcessing = true
@@ -176,7 +202,7 @@ public class InitializeRenderConnector : UpdatePacket<RenderConnector>
         RenderConnector.camera360 = gameObject2.AddComponent<Camera360>();
         RenderConnector.camera360.DisplayCamera.enabled = false;
         RenderConnector.camera360.Camera.nearClipPlane = 0.05f;
-        RenderConnector.camera360.projectionMaterial = Resources.Load<UnityEngine.Material>("EquirectangularProjection");
+        RenderConnector.camera360.projectionMaterial = Resources.Load<Material>("EquirectangularProjection");
         CameraInitializer.SetupCamera(RenderConnector.camera360.Camera, settings);
         RenderConnector.camera360.Camera.gameObject.AddComponent<ShaderCameraProperties>();
         RenderConnector._privateLayerMask = ~LayerMask.GetMask("Private");

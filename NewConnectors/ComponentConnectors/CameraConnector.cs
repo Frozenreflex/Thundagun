@@ -1,3 +1,5 @@
+#region
+
 using System.Collections.Generic;
 using System.Linq;
 using Elements.Core;
@@ -7,22 +9,30 @@ using Camera = FrooxEngine.Camera;
 using Rect = UnityEngine.Rect;
 using RenderTextureConnector = Thundagun.NewConnectors.AssetConnectors.RenderTextureConnector;
 
+#endregion
+
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
 public class CameraConnector : ComponentConnectorSingle<Camera>
 {
-    public bool PostprocessingSetup;
-    public bool ScreenspaceReflections;
-    public bool MotionBlur;
-    public GameObject CameraGo;
-    public CameraRenderEx RenderEx;
     public static int LayerMask;
     public static int PrivateLayerMask;
+    public GameObject CameraGo;
+    public bool MotionBlur;
+    public bool PostprocessingSetup;
+    public CameraRenderEx RenderEx;
+    public bool ScreenspaceReflections;
     public UnityEngine.Camera UnityCamera { get; set; }
 
-    public override IUpdatePacket InitializePacket() => new InitializeCameraConnector(this);
+    public override IUpdatePacket InitializePacket()
+    {
+        return new InitializeCameraConnector(this);
+    }
 
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesCameraConnector(this));
+    public override void ApplyChanges()
+    {
+        Thundagun.QueuePacket(new ApplyChangesCameraConnector(this));
+    }
 
     public override void DestroyMethod(bool destroyingWorld)
     {
@@ -59,29 +69,29 @@ public class InitializeCameraConnector : InitializeComponentConnectorSingle<Came
 
 public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
 {
-    public bool Orthographic;
-    public float FieldOfView;
-    public float OrthographicSize;
-    public bool UseTransformScale;
-    public float NearClip;
-    public float FarClip;
-    public CameraClearFlags ClearFlags;
+    public bool Active;
     public Color BackgroundColor;
-    public Rect Rect;
+    public CameraClearFlags ClearFlags;
+    public int CullingMask;
     public float Depth;
+    public bool DoubleBuffer;
+    public List<SlotConnector> ExcludeRender;
+    public float FarClip;
+    public float FieldOfView;
+    public bool MotionBlur;
+    public float NearClip;
+    public bool Orthographic;
+    public float OrthographicSize;
+    public bool PostprocessingSetup;
+    public Rect Rect;
+    public bool RemovePostProcessing;
     public RenderingPath RenderingPath;
     public bool RenderShadows;
-    public bool PostprocessingSetup;
     public bool ScreenspaceReflections;
-    public bool MotionBlur;
-    public bool SetupPostProcessing;
-    public bool RemovePostProcessing;
-    public RenderTextureConnector Texture;
-    public bool DoubleBuffer;
     public List<SlotConnector> SelectiveRender;
-    public List<SlotConnector> ExcludeRender;
-    public int CullingMask;
-    public bool Active;
+    public bool SetupPostProcessing;
+    public RenderTextureConnector Texture;
+    public bool UseTransformScale;
 
     public ApplyChangesCameraConnector(CameraConnector owner) : base(owner)
     {
@@ -113,8 +123,10 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
         Texture = owner.Owner.RenderTexture?.Asset?.Connector as RenderTextureConnector;
         DoubleBuffer = owner.Owner.DoubleBuffered.Value;
 
-        SelectiveRender = owner.Owner.SelectiveRender.Select(i => i?.Connector as SlotConnector).Where(i => i is not null).ToList();
-        ExcludeRender = owner.Owner.ExcludeRender.Select(i => i?.Connector as SlotConnector).Where(i => i is not null).ToList();
+        SelectiveRender = owner.Owner.SelectiveRender.Select(i => i?.Connector as SlotConnector)
+            .Where(i => i is not null).ToList();
+        ExcludeRender = owner.Owner.ExcludeRender.Select(i => i?.Connector as SlotConnector).Where(i => i is not null)
+            .ToList();
 
         CullingMask = owner.Owner.RenderPrivateUI ? CameraConnector.PrivateLayerMask : CameraConnector.LayerMask;
         Active = owner.Owner.Enabled && owner.Owner.Slot.IsActive;
@@ -143,7 +155,7 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
             Owner.PostprocessingSetup = PostprocessingSetup;
             Owner.ScreenspaceReflections = ScreenspaceReflections;
             Owner.MotionBlur = MotionBlur;
-            CameraSettings settings = new CameraSettings();
+            var settings = new CameraSettings();
             settings.MotionBlur = Owner.MotionBlur;
             settings.ScreenSpaceReflection = Owner.ScreenspaceReflections;
             settings.SetupPostProcessing = true;
@@ -155,8 +167,10 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
         Owner.RenderEx.DoubleBuffer = DoubleBuffer && !PostprocessingSetup;
         Owner.RenderEx.SelectiveRender.Clear();
         Owner.RenderEx.ExcludeRender.Clear();
-        Owner.RenderEx.SelectiveRender.AddRange(SelectiveRender.Select(i => i?.ForceGetGameObject()).Where(i => i is not null));
-        Owner.RenderEx.ExcludeRender.AddRange(ExcludeRender.Select(i => i?.ForceGetGameObject()).Where(i => i is not null));
+        Owner.RenderEx.SelectiveRender.AddRange(SelectiveRender.Select(i => i?.ForceGetGameObject())
+            .Where(i => i is not null));
+        Owner.RenderEx.ExcludeRender.AddRange(ExcludeRender.Select(i => i?.ForceGetGameObject())
+            .Where(i => i is not null));
 
         Owner.UnityCamera.cullingMask = Owner.RenderEx.SelectiveRender.Count <= 0
             ? CullingMask

@@ -1,16 +1,24 @@
+#region
+
 using Elements.Core;
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+using RenderTextureConnector = Thundagun.NewConnectors.AssetConnectors.RenderTextureConnector;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
 public class CameraPortalConnector : ComponentConnectorSingle<FrooxEngine.CameraPortal>
 {
-    public CameraPortal currentPortal;
     public static int LayerMask;
+    public CameraPortal currentPortal;
 
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesCameraPortalConnector(this));
+    public override void ApplyChanges()
+    {
+        Thundagun.QueuePacket(new ApplyChangesCameraPortalConnector(this));
+    }
 
     public override void DestroyMethod(bool destroyingWorld)
     {
@@ -25,26 +33,27 @@ public class CameraPortalConnector : ComponentConnectorSingle<FrooxEngine.Camera
             currentPortal.Engine = null;
             if (!destroyingWorld && currentPortal) Object.Destroy(currentPortal);
         }
+
         currentPortal = null;
     }
 }
 
 public class ApplyChangesCameraPortalConnector : UpdatePacket<CameraPortalConnector>
 {
-    public MeshRendererConnector MeshRenderer;
-    public Engine Engine;
-    public AssetConnectors.RenderTextureConnector ReflectionTexture;
-    public Vector3 Normal;
     public float ClipPlaneOffset;
+    public bool DisablePixelLights;
+    public bool DisableShadows;
+    public Engine Engine;
+    public MeshRendererConnector MeshRenderer;
+    public Vector3 Normal;
     public CameraClearFlags? OverrideClearFlag;
     public float? OverrideFarClip;
     public float? OverrideNearClip;
-    public bool DisablePixelLights;
-    public bool DisableShadows;
-    public CameraPortal.Mode RenderMode;
-    public Matrix4x4 PortalTransform;
-    public Vector3 PortalPlanePosition;
     public Vector3 PortalPlaneNormal;
+    public Vector3 PortalPlanePosition;
+    public Matrix4x4 PortalTransform;
+    public RenderTextureConnector ReflectionTexture;
+    public CameraPortal.Mode RenderMode;
 
     public ApplyChangesCameraPortalConnector(CameraPortalConnector owner) : base(owner)
     {
@@ -52,12 +61,13 @@ public class ApplyChangesCameraPortalConnector : UpdatePacket<CameraPortalConnec
         MeshRenderer = target?.Connector as MeshRendererConnector;
         Engine = owner.Owner.Engine;
 
-        if (target?.Mesh.Target != null && MeshRenderer?.MeshRenderer?.gameObject == null && target.IsChangeDirty) owner.Owner.MarkChangeDirty();
+        if (target?.Mesh.Target != null && MeshRenderer?.MeshRenderer?.gameObject == null && target.IsChangeDirty)
+            owner.Owner.MarkChangeDirty();
 
         var v = MathX.FilterInvalid(owner.Owner.PlaneNormal);
         if (v.SqrMagnitude < 1E-06f) v = float3.Forward;
         var clipPlaneOffset = MathX.FilterInvalid(owner.Owner.PlaneOffset);
-        ReflectionTexture = owner.Owner.ReflectionTexture?.Asset?.Connector as AssetConnectors.RenderTextureConnector;
+        ReflectionTexture = owner.Owner.ReflectionTexture?.Asset?.Connector as RenderTextureConnector;
         Normal = v.ToUnity();
         ClipPlaneOffset = clipPlaneOffset;
         OverrideClearFlag = owner.Owner.OverrideClear.Value?.ToUnity();
@@ -74,7 +84,10 @@ public class ApplyChangesCameraPortalConnector : UpdatePacket<CameraPortalConnec
             PortalPlanePosition = portalPlanePosition.ToUnity();
             PortalPlaneNormal = portalPlaneNormal.ToUnity();
         }
-        else RenderMode = CameraPortal.Mode.Mirror;
+        else
+        {
+            RenderMode = CameraPortal.Mode.Mirror;
+        }
     }
 
     public override void Update()
@@ -82,18 +95,17 @@ public class ApplyChangesCameraPortalConnector : UpdatePacket<CameraPortalConnec
         var gameObject = MeshRenderer?.MeshRenderer?.gameObject;
         if (gameObject != Owner.currentPortal?.gameObject)
         {
-            Owner.Cleanup(destroyingWorld: false);
+            Owner.Cleanup(false);
             if (gameObject != null)
             {
                 if (CameraPortalConnector.LayerMask == 0)
-                {
                     CameraPortalConnector.LayerMask = ~LayerMask.GetMask("Private", "Overlay");
-                }
                 Owner.currentPortal = gameObject.AddComponent<CameraPortal>();
                 Owner.currentPortal.ReflectLayers = CameraPortalConnector.LayerMask;
                 Owner.currentPortal.Engine = Engine;
             }
         }
+
         if (Owner.currentPortal == null) return;
 
         Owner.currentPortal.ReflectionTexture = ReflectionTexture?.RenderTexture;

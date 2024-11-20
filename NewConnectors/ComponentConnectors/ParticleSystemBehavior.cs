@@ -1,39 +1,42 @@
+#region
+
 using System;
-using System.Diagnostics;
 using Elements.Core;
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+using ParticleSystem = UnityEngine.ParticleSystem;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
 public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector>
 {
+    private const int GRANULARITY = 100;
     private static ParticleEmission[] _emissions;
 
     private static color[] _colors;
 
-    internal float lastDeltaTime;
+    internal ParticleSystem.Particle[] _particles;
 
     internal int lastCount;
 
+    internal float lastDeltaTime;
+
     internal SlotConnector lastSpace;
 
-    internal UnityEngine.ParticleSystem pSystem;
+    internal ParticleSystem.LightsModule pLights;
 
     internal ParticleSystemRenderer pRenderer;
 
-    internal UnityEngine.ParticleSystem.ShapeModule pShape;
+    internal ParticleSystem.ShapeModule pShape;
 
-    internal UnityEngine.ParticleSystem.TrailModule pTrail;
+    internal ParticleSystem pSystem;
 
-    internal UnityEngine.ParticleSystem.LightsModule pLights;
+    internal ParticleSystem.TrailModule pTrail;
 
-    internal UnityEngine.ParticleSystem.Particle[] _particles;
-
-    private RandomXGenerator random = new(RandomX.Int);
-
-    private const int GRANULARITY = 100;
+    private readonly RandomXGenerator random = new(RandomX.Int);
 
     internal FrooxEngine.ParticleSystem FrooxEngineParticleSystem => Connector.Owner;
 
@@ -41,36 +44,12 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
 
     internal PhysicsManager Physics => Connector?.World?.Physics;
 
-    public void Init()
-    {
-        if (!ParticleSystemWorker.Initialized)
-        {
-            new GameObject("ParticleSystemManager").AddComponent<ParticleSystemWorker>();
-            ParticleSystemWorker.RegisterJobProcessor(Connector.Owner.Engine.WorkProcessor);
-        }
-        var o = new GameObject("ParticleSystem");
-        o.transform.SetParent(transform, worldPositionStays: false);
-        pSystem = o.AddComponent<UnityEngine.ParticleSystem>();
-        pRenderer = o.GetComponent<ParticleSystemRenderer>();
-        var main = pSystem.main;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-        main.useUnscaledTime = true;
-        pShape = pSystem.shape;
-        pTrail = pSystem.trails;
-        pLights = pSystem.lights;
-        var emission = pSystem.emission;
-        emission.enabled = false;
-    }
-
-    public void Cleanup() => Destroy(pSystem.gameObject);
-
     private void LateUpdate()
     {
         //TODO
         if (ParticleStyle == null) return;
         var particleStyle = ParticleStyle;
-        var emitParams = default(UnityEngine.ParticleSystem.EmitParams);
+        var emitParams = default(ParticleSystem.EmitParams);
         emitParams.applyShapeToPosition = false;
         var particleCount = pSystem.particleCount;
         var num = pSystem.main.maxParticles - particleCount;
@@ -85,7 +64,8 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
             var num2 = MathX.Min(emitter.CurrentCount, num);
             _emissions = _emissions.EnsureSize(num2);
             if (generatesColors) _colors = _colors.EnsureSize(num2);
-            var num3 = emitter.GenerateParticles(FrooxEngineParticleSystem.SimulationSpace.Space, num2, _emissions, generatesColors ? _colors : null);
+            var num3 = emitter.GenerateParticles(FrooxEngineParticleSystem.SimulationSpace.Space, num2, _emissions,
+                generatesColors ? _colors : null);
             if (num3 == 0) continue;
             if (world.Focus is World.WorldFocus.PrivateOverlay or World.WorldFocus.Overlay)
             {
@@ -93,14 +73,18 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
                 for (var i = 0; i < num3; i++)
                 {
                     _emissions[i].Position = WorldManager.TransferPoint(_emissions[i].Position, world, focusedWorld);
-                    _emissions[i].Direction = WorldManager.TransferDirection(_emissions[i].Direction, world, focusedWorld);
+                    _emissions[i].Direction =
+                        WorldManager.TransferDirection(_emissions[i].Direction, world, focusedWorld);
                 }
             }
+
             bool flag = particleStyle.Use3DRotation;
             for (var j = 0; j < num3; j++)
             {
                 emitParams.position = _emissions[j].Position.ToUnity();
-                emitParams.velocity = _emissions[j].Direction.ToUnity() * random.Range(particleStyle.MinStartSpeed.Value, particleStyle.MaxStartSpeed.Value);
+                emitParams.velocity = _emissions[j].Direction.ToUnity() *
+                                      random.Range(particleStyle.MinStartSpeed.Value,
+                                          particleStyle.MaxStartSpeed.Value);
                 if (flag)
                 {
                     var randomXGenerator = random;
@@ -115,28 +99,54 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
                 else
                 {
                     emitParams.rotation = random.Range(particleStyle.MinStartRotation, particleStyle.MaxStartRotation);
-                    emitParams.angularVelocity = random.Range(particleStyle.MinStartAngularVelocity, particleStyle.MaxStartAngularVelocity.Value);
+                    emitParams.angularVelocity = random.Range(particleStyle.MinStartAngularVelocity,
+                        particleStyle.MaxStartAngularVelocity.Value);
                 }
+
                 emitParams.startSize = random.Range(particleStyle.MinStartSize.Value, particleStyle.MaxStartSize.Value);
                 emitParams.startLifetime = random.Range(min, max);
                 var randomXGenerator3 = random;
                 var min3 = particleStyle.MinStartColor.Value;
                 var max3 = particleStyle.MaxStartColor.Value;
                 var a = randomXGenerator3.Lerp(in min3, in max3).ToProfile(ColorProfile.sRGB);
-                if (generatesColors)
-                {
-                    a *= _colors[j];
-                }
+                if (generatesColors) a *= _colors[j];
                 var c = (color32)a;
                 emitParams.startColor = c.ToUnity();
                 pSystem.Emit(emitParams, 1);
             }
+
             num -= num3;
         }
-        if (particleStyle.Collisions.Value)
+
+        if (particleStyle.Collisions.Value) ScheduleCollisionComputation();
+    }
+
+    public void Init()
+    {
+        if (!ParticleSystemWorker.Initialized)
         {
-            ScheduleCollisionComputation();
+            new GameObject("ParticleSystemManager").AddComponent<ParticleSystemWorker>();
+            ParticleSystemWorker.RegisterJobProcessor(Connector.Owner.Engine.WorkProcessor);
         }
+
+        var o = new GameObject("ParticleSystem");
+        o.transform.SetParent(transform, false);
+        pSystem = o.AddComponent<ParticleSystem>();
+        pRenderer = o.GetComponent<ParticleSystemRenderer>();
+        var main = pSystem.main;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+        main.useUnscaledTime = true;
+        pShape = pSystem.shape;
+        pTrail = pSystem.trails;
+        pLights = pSystem.lights;
+        var emission = pSystem.emission;
+        emission.enabled = false;
+    }
+
+    public void Cleanup()
+    {
+        Destroy(pSystem.gameObject);
     }
 
     private void ScheduleCollisionComputation()
@@ -151,6 +161,7 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
             var job = new ParticleJob(this, i, Math.Min(particles, i + 100));
             ParticleSystemWorker.RegisterJob(in job);
         }
+
         lastCount = particles;
         ParticleSystemWorker.RegisterJobData(this);
     }

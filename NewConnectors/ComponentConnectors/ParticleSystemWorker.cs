@@ -1,12 +1,14 @@
+#region
+
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Elements.Core;
-using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
@@ -14,11 +16,11 @@ public class ParticleSystemWorker : MonoBehaviour
 {
     public const float STOP_VELOCITY_MAGNITUDE = 1E-10f;
 
-    private static volatile int processedJobs = 0;
+    private static volatile int processedJobs;
 
-    private static List<ParticleSystemBehavior> jobData = new();
+    private static readonly List<ParticleSystemBehavior> jobData = new();
 
-    private static SpinQueue<ParticleJob> jobs = new();
+    private static readonly SpinQueue<ParticleJob> jobs = new();
 
     private static WorkProcessor jobProcessor;
 
@@ -42,20 +44,17 @@ public class ParticleSystemWorker : MonoBehaviour
         var count = jobs.Count;
         processedJobs = 0;
         /*
-		for (var i = 0; i < MathX.Min(jobProcessor.WorkerCount - 1, count - 1); i++)
-		{
-			jobProcessor.Enqueue(workerDelegate, WorkType.HighPriority);
-		}
-		ParticleCollisionWorker();
-		while (processedJobs < count)
-		{
-			Thread.Yield();
-		}
-		*/
-        while (processedJobs < count)
-        {
-            ParticleCollisionWorker();
+     for (var i = 0; i < MathX.Min(jobProcessor.WorkerCount - 1, count - 1); i++)
+       {
+          jobProcessor.Enqueue(workerDelegate, WorkType.HighPriority);
+       }
+      ParticleCollisionWorker();
+     while (processedJobs < count)
+      {
+          Thread.Yield();
         }
+      */
+        while (processedJobs < count) ParticleCollisionWorker();
         foreach (var jobDatum in jobData.Where(jobDatum => jobDatum.pSystem != null))
             jobDatum.pSystem.SetParticles(jobDatum._particles, jobDatum.lastCount);
         jobData.Clear();
@@ -91,6 +90,7 @@ public class ParticleSystemWorker : MonoBehaviour
                     Interlocked.Increment(ref processedJobs);
                     continue;
                 }
+
                 var lastDeltaTime = val.behavior.lastDeltaTime;
                 var value = particleStyle.Bounce.Value;
                 var value2 = particleStyle.LengthScale.Value;
@@ -116,13 +116,9 @@ public class ParticleSystemWorker : MonoBehaviour
                     var normalized = Vector3.Reflect(particle.velocity, value5.Normal.ToUnity()).normalized;
                     var num2 = magnitude * value;
                     if (num2 <= 1E-10f)
-                    {
                         particle.velocity = direction.ToUnity() * 1E-10f;
-                    }
                     else
-                    {
                         particle.velocity = normalized * num2;
-                    }
                     var num3 = particle.startSize * value2 + magnitude * value * value3;
                     particle.position = value5.Point.ToUnity() + normalized * MathX.Max(val2, num3 * 0.5f);
                     particle.remainingLifetime -= value4 * particle.startLifetime;
@@ -133,6 +129,7 @@ public class ParticleSystemWorker : MonoBehaviour
             {
                 UniLog.Log("Exception in ParticleCollisionJob: " + ex);
             }
+
             Interlocked.Increment(ref processedJobs);
         }
     }
