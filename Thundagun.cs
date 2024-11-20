@@ -29,11 +29,11 @@ public class Thundagun : ResoniteMod
     public override string Name => "Thundagun";
     public override string Author => "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK"; // in order of first commit
     public override string Version => "1.1.1"; // change minor version for config "API" changes
-    
+
     public static readonly Queue<IUpdatePacket> CurrentPackets = new();
 
     public static Task FrooxEngineTask;
-    
+
     public static readonly EngineCompletionStatus EngineCompletionStatus = new EngineCompletionStatus();
 
     public static void QueuePacket(IUpdatePacket packet)
@@ -45,11 +45,11 @@ public class Thundagun : ResoniteMod
 
     [AutoRegisterConfigKey]
     internal static readonly ModConfigurationKey<bool> DebugLogging =
-        new("DebugLogging", "Debug Logging: Whether to enable debug logging.", () => false, 
+        new("DebugLogging", "Debug Logging: Whether to enable debug logging.", () => false,
             false, _ => true);
     [AutoRegisterConfigKey]
     internal static readonly ModConfigurationKey<double> LoggingRate =
-      new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0, 
+      new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0,
           false, value => value >= 0.001 || value <= 1000.0);
     [AutoRegisterConfigKey]
     internal static readonly ModConfigurationKey<double> MaxEngineTickRate =
@@ -95,8 +95,8 @@ public class Thundagun : ResoniteMod
         }
 
         // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
-        Engine.Current.RunPostInit(() => 
-        { 
+        Engine.Current.RunPostInit(() =>
+        {
             Engine.Current.WorldManager.WorldFocused += WorldAdded;
         });
     }
@@ -204,10 +204,10 @@ public static class FrooxEngineRunnerPatch
             if (!firstRunEngine)
             {
                 firstRunEngine = true;
-                
+
                 PatchHeadOutput(____vrOutput);
                 PatchHeadOutput(____screenOutput);
-                
+
                 var toRemove = __instance.gameObject.scene.GetRootGameObjects().SelectMany(i => i.GetComponentsInChildren<CameraPostprocessingManager>());
                 foreach (var remove in toRemove)
                 {
@@ -215,7 +215,7 @@ public static class FrooxEngineRunnerPatch
                     Object.Destroy(remove);
                 }
             }
-            
+
             try
             {
                 UpdateFrameRate(__instance);
@@ -237,7 +237,7 @@ public static class FrooxEngineRunnerPatch
                 });
 
                 SynchronizationManager.OnUnityUpdate();
-                
+
                 if (Thundagun.FrooxEngineTask?.Exception is not null) throw Thundagun.FrooxEngineTask.Exception;
 
                 var focusedWorld = engine.WorldManager.FocusedWorld;
@@ -262,7 +262,7 @@ public static class FrooxEngineRunnerPatch
                         {
                             update.Update();
 
-                            
+
                         }
                         catch (Exception e)
                         {
