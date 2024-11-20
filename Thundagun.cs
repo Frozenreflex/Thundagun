@@ -2,6 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -10,16 +12,15 @@ using Elements.Core;
 using FrooxEngine;
 using HarmonyLib;
 using ResoniteModLoader;
+using Thundagun.NewConnectors.AssetConnectors;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+using Monitor = uDesktopDuplication.Monitor;
 using Object = UnityEngine.Object;
 using RenderConnector = Thundagun.NewConnectors.RenderConnector;
 using SlotConnector = Thundagun.NewConnectors.SlotConnector;
 using UnityAssetIntegrator = Thundagun.NewConnectors.UnityAssetIntegrator;
 using WorldConnector = Thundagun.NewConnectors.WorldConnector;
-using Serilog;
-using System.IO;
-using Thundagun.NewConnectors.AssetConnectors;
 
 namespace Thundagun;
 
@@ -33,7 +34,7 @@ public class Thundagun : ResoniteMod
 
     public static Task FrooxEngineTask;
     
-    public static EngineCompletionStatus engineCompletionStatus = new EngineCompletionStatus();
+    public static readonly EngineCompletionStatus EngineCompletionStatus = new EngineCompletionStatus();
 
     public static void QueuePacket(IUpdatePacket packet)
     {
@@ -43,25 +44,25 @@ public class Thundagun : ResoniteMod
     internal static ModConfiguration Config;
 
     [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<bool> DebugLogging =
+    internal static readonly ModConfigurationKey<bool> DebugLogging =
         new("DebugLogging", "Debug Logging: Whether to enable debug logging.", () => false, 
-            false, value => true);
+            false, _ => true);
     [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<double> LoggingRate =
+    internal static readonly ModConfigurationKey<double> LoggingRate =
       new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0, 
           false, value => value >= 0.001 || value <= 1000.0);
     [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<double> MaxEngineTickRate =
+    internal static readonly ModConfigurationKey<double> MaxEngineTickRate =
         new("MaxEngineTickRate", "Max Engine Tick Rate: The max rate per second at which FrooxEngine can update.", () => 1000.0,
             false, value => value >= 1.0);
     [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<double> MaxUnityTickRate =
+    internal static readonly ModConfigurationKey<double> MaxUnityTickRate =
         new("MaxUnityTickRate", "Max Unity Tick Rate: The max rate per second at which Unity can update.", () => 1000.0,
             false, value => value >= 1.0);
     [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<bool> RenderIncompleteUpdates =
+    internal static readonly ModConfigurationKey<bool> RenderIncompleteUpdates =
         new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can look glitchy.", () => false,
-            false, value => true);
+            false, _ => true);
 
     public override void OnEngineInit()
     {
@@ -88,11 +89,9 @@ public class Thundagun : ResoniteMod
 
         void WorldAdded(World w)
         {
-            if (!w.IsUserspace())
-            {
-                harmony.Patch(AccessTools.Method(typeof(DuplicableDisplay), "Update"), prefix: new HarmonyMethod(PatchDesktop.Prefix));
-                Engine.Current.WorldManager.WorldFocused -= WorldAdded;
-            }
+            if (w.IsUserspace()) return;
+            harmony.Patch(AccessTools.Method(typeof(DuplicableDisplay), "Update"), prefix: new HarmonyMethod(PatchDesktop.Prefix));
+            Engine.Current.WorldManager.WorldFocused -= WorldAdded;
         }
 
         // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
@@ -102,7 +101,7 @@ public class Thundagun : ResoniteMod
         });
     }
 
-    public static void PatchEngineTypes()
+    private static void PatchEngineTypes()
     {
         var engineTypes = typeof(Slot).Assembly.GetTypes()
             .Where(i => i.GetCustomAttribute<ImplementableClassAttribute>() is not null).ToList();
@@ -110,33 +109,32 @@ public class Thundagun : ResoniteMod
         {
             var field1 = type.GetField("__connectorType",
                 BindingFlags.FlattenHierarchy | BindingFlags.NonPublic | BindingFlags.Static);
-            var field2 = type.GetField("__connectorTypes",
-                BindingFlags.FlattenHierarchy | BindingFlags.NonPublic | BindingFlags.Static);
 
             if (type == typeof(Slot))
             {
-                field1.SetValue(null, typeof(SlotConnector));
+                if (field1 != null) field1.SetValue(null, typeof(SlotConnector));
                 Msg($"Patched {type.Name}");
             }
             else if (type == typeof(World))
             {
-                field1.SetValue(null, typeof(WorldConnector));
+                if (field1 != null) field1.SetValue(null, typeof(WorldConnector));
                 Msg($"Patched {type.Name}");
             }
             else if (type == typeof(AssetManager))
             {
-                field1.SetValue(null, typeof(UnityAssetIntegrator));
+                if (field1 != null) field1.SetValue(null, typeof(UnityAssetIntegrator));
                 Msg($"Patched {type.Name}");
             }
             else if (type == typeof(RenderManager))
             {
-                field1.SetValue(null, typeof(RenderConnector));
+                if (field1 != null) field1.SetValue(null, typeof(RenderConnector));
                 Msg($"Patched {type.Name}");
             }
         }
     }
 
-    public static void PatchComponentConnectors(Harmony harmony)
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private static void PatchComponentConnectors(Harmony harmony)
     {
         var types = typeof(Thundagun).Assembly.GetTypes()
             .Where(i => i.IsClass && i.GetInterfaces().Contains(typeof(IConnector))).ToList();
@@ -144,25 +142,30 @@ public class Thundagun : ResoniteMod
         var initInfosField = typeof(WorkerInitializer).GetField("initInfos", AccessTools.all);
         var initInfos = (ConcurrentDictionary<Type, WorkerInitInfo>)initInfosField?.GetValue(null);
 
-        Msg($"Attempting to patch component types");
+        Msg("Attempting to patch component types");
 
-        foreach (var t in initInfos.Keys)
+        if (initInfos == null) return;
         {
-            Msg($"Attempting " + t.Name);
-            var connectorType = typeof(IConnector<>).MakeGenericType(!t.IsGenericType ? t : t.GetGenericTypeDefinition());
-            var array = types.Where(j => j.GetInterfaces().Any(i => i == connectorType)).ToArray();
-            if (array.Length == 1)
+            foreach (var t in initInfos.Keys)
             {
-                initInfos[t].connectorType = array[0];
-                Msg($"Patched " + t.Name);
+                Msg("Attempting " + t.Name);
+                var connectorType =
+                    typeof(IConnector<>).MakeGenericType(!t.IsGenericType ? t : t.GetGenericTypeDefinition());
+                var array = types.Where(j => j.GetInterfaces().Any(i => i == connectorType)).ToArray();
+                if (array.Length == 1)
+                {
+                    initInfos[t].connectorType = array[0];
+                    Msg("Patched " + t.Name);
+                }
             }
         }
     }
 }
 
-class PatchDesktop
+internal static class PatchDesktop
 {
-	public static bool Prefix(DuplicableDisplay __instance, uDesktopDuplication.Monitor monitor)
+	[SuppressMessage("ReSharper", "InconsistentNaming")]
+    public static bool Prefix(DuplicableDisplay __instance, Monitor monitor)
 	{
 		Thundagun.QueuePacket(new DesktopUpdatePacket(__instance, monitor));
 		return false;
@@ -172,18 +175,17 @@ class PatchDesktop
 [HarmonyPatch(typeof(FrooxEngineRunner))]
 public static class FrooxEngineRunnerPatch
 {
+    private static readonly Queue<int> AssetsProcessed = new();
 
-    public static Queue<int> assets_processed = new();
+    public static DateTime LastRender;
+    public static DateTime LastTick;
 
-    public static DateTime lastrender;
-    public static DateTime lastTick;
-
-    public static bool firstrunengine;
-    public static bool shutdown;
+    private static bool firstRunEngine;
+    private static bool shutdown;
 
     [HarmonyPrefix]
     [HarmonyPatch("Update")]
-
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public static bool Update(FrooxEngineRunner __instance,
         ref Engine ____frooxEngine, ref bool ____shutdownRequest, ref Stopwatch ____externalUpdate, ref World ____lastFocusedWorld,
         ref HeadOutput ____vrOutput, ref HeadOutput ____screenOutput, ref AudioListener ____audioListener, ref List<World> ____worlds)
@@ -199,9 +201,9 @@ public static class FrooxEngineRunnerPatch
         {
             ____externalUpdate.Stop();
 
-            if (!firstrunengine)
+            if (!firstRunEngine)
             {
-                firstrunengine = true;
+                firstRunEngine = true;
                 
                 PatchHeadOutput(____vrOutput);
                 PatchHeadOutput(____screenOutput);
@@ -209,7 +211,7 @@ public static class FrooxEngineRunnerPatch
                 var toRemove = __instance.gameObject.scene.GetRootGameObjects().SelectMany(i => i.GetComponentsInChildren<CameraPostprocessingManager>());
                 foreach (var remove in toRemove)
                 {
-                    Thundagun.Msg("deleting a stray post-processing manager");
+                    ResoniteMod.Msg("deleting a stray post-processing manager");
                     Object.Destroy(remove);
                 }
             }
@@ -217,7 +219,6 @@ public static class FrooxEngineRunnerPatch
             try
             {
                 UpdateFrameRate(__instance);
-                var starttime = DateTime.Now;
 
                 var engine = ____frooxEngine;
                 Thundagun.FrooxEngineTask ??= Task.Run(() =>
@@ -225,10 +226,9 @@ public static class FrooxEngineRunnerPatch
                     while (!shutdown)
                     {
                         var total = 0;
-                        lock (assets_processed)
-                            while (assets_processed.Any()) total += assets_processed.Dequeue();
+                        lock (AssetsProcessed)
+                            while (AssetsProcessed.Any()) total += AssetsProcessed.Dequeue();
 
-                        var beforeEngine = DateTime.Now;
                         engine.AssetsUpdated(total);
                         engine.RunUpdateLoop();
 
@@ -247,9 +247,7 @@ public static class FrooxEngineRunnerPatch
 
                 engine.InputInterface.UpdateWindowResolution(new int2(Screen.width, Screen.height));
 
-                var boilerplateTime = DateTime.Now;
-                
-                if (Thundagun.engineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+                if (Thundagun.EngineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
                 {
                     List<IUpdatePacket> updates;
                     lock (Thundagun.CurrentPackets)
@@ -268,16 +266,12 @@ public static class FrooxEngineRunnerPatch
                         }
                         catch (Exception e)
                         {
-                            Thundagun.Msg(e);
+                            ResoniteMod.Msg(e);
                         }
                     }
-                    lock (Thundagun.engineCompletionStatus)
-                        Thundagun.engineCompletionStatus.EngineCompleted = false;
+                    lock (Thundagun.EngineCompletionStatus)
+                        Thundagun.EngineCompletionStatus.EngineCompleted = false;
                 }
-
-                var assetTime = DateTime.Now;
-                var loopTime = DateTime.Now;
-                var updateTime = DateTime.Now;
 
                 if (focusedWorld != lastFocused)
                 {
@@ -289,14 +283,11 @@ public static class FrooxEngineRunnerPatch
                 }
                 UpdateQualitySettings(__instance);
 
-                var finishTime = DateTime.Now;
-                
-                lastrender = DateTime.Now;
+                LastRender = DateTime.Now;
             }
             catch (Exception ex)
             {
-                Thundagun.Msg($"Exception updating FrooxEngine:\n{ex}");
-                var startwait = DateTime.Now;
+                ResoniteMod.Msg($"Exception updating FrooxEngine:\n{ex}");
                 var wait = new Task(() => Task.Delay(10000));
                 wait.Start();
                 wait.Wait();
@@ -333,14 +324,15 @@ public static class FrooxEngineRunnerPatch
 
     [HarmonyReversePatch]
     [HarmonyPatch("UpdateFrameRate")]
-    public static void UpdateFrameRate(object instance) => throw new NotImplementedException("stub");
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private static void UpdateFrameRate(object instance) => throw new NotImplementedException("stub");
 
-    private static void UpdateHeadOutput(World focusedWorld, Engine engine, HeadOutput VR, HeadOutput screen, AudioListener listener, ref List<World> worlds)
+    private static void UpdateHeadOutput(World focusedWorld, Engine engine, HeadOutput vr, HeadOutput screen, AudioListener listener, ref List<World> worlds)
     {
         if (focusedWorld == null) return;
         var num = engine.InputInterface.VR_Active ? 1 : 0;
-        var headOutput1 = num != 0 ? VR : screen;
-        var headOutput2 = num != 0 ? screen : VR;
+        var headOutput1 = num != 0 ? vr : screen;
+        var headOutput2 = num != 0 ? screen : vr;
         if (headOutput2 != null && headOutput2.gameObject.activeSelf) headOutput2.gameObject.SetActive(false);
         if (!headOutput1.gameObject.activeSelf) headOutput1.gameObject.SetActive(true);
         headOutput1.UpdatePositioning(focusedWorld);
@@ -378,7 +370,8 @@ public static class FrooxEngineRunnerPatch
 
     [HarmonyReversePatch]
     [HarmonyPatch("UpdateQualitySettings")]
-    public static void UpdateQualitySettings(object instance) => throw new NotImplementedException("stub");
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private static void UpdateQualitySettings(object instance) => throw new NotImplementedException("stub");
     private static void Shutdown(this FrooxEngineRunner runner, ref Engine engine)
     {
         UniLog.Log("Shutting down");
@@ -398,7 +391,9 @@ public static class FrooxEngineRunnerPatch
         }
         catch
         {
+            // ignored
         }
+
         Application.Quit();
         Process.GetCurrentProcess().Kill();
     }
@@ -407,7 +402,7 @@ public static class FrooxEngineRunnerPatch
 [HarmonyPatch(typeof(AssetInitializer))]
 public static class AssetInitializerPatch
 {
-    public static readonly Dictionary<Type, Type> Connectors = new();
+    private static readonly Dictionary<Type, Type> Connectors = new();
     static AssetInitializerPatch()
     {
         var ourTypes = typeof(Thundagun).Assembly.GetTypes()
@@ -432,6 +427,7 @@ public static class AssetInitializerPatch
     }
     [HarmonyPrefix]
     [HarmonyPatch("GetConnectorType")]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public static bool GetConnectorType(Asset asset, ref Type __result)
     {
         if (!Connectors.TryGetValue(asset.GetType(), out var t)) return true;
@@ -442,6 +438,7 @@ public static class AssetInitializerPatch
 
 public static class WorkerInitializerPatch
 {
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public static void Initialize(Type workerType, WorkerInitInfo __result)
     {
         if (!workerType.GetInterfaces().Contains(typeof(IImplementable))) return;
@@ -461,20 +458,15 @@ public static class WorkerInitializerPatch
         if (array.Length == 1)
         {
             __result.connectorType = array[0];
-            Thundagun.Msg($"Patched " + workerType.Name);
+            ResoniteMod.Msg("Patched " + workerType.Name);
         }
     }
 }
 
-public abstract class UpdatePacket<T> : IUpdatePacket
+public abstract class UpdatePacket<T>(T owner) : IUpdatePacket
 {
-    public T Owner;
+    protected readonly T Owner = owner;
     public abstract void Update();
-
-    public UpdatePacket(T owner)
-    {
-        Owner = owner;
-    }
 }
 
 public interface IUpdatePacket
@@ -485,16 +477,14 @@ public interface IUpdatePacket
 
 public static class EarlyLogger
 {
-    private static readonly string logFilePath = "ThundagunLogs/log.txt";
+    private const string LogFilePath = "ThundagunLogs/log.txt";
 
     public static void Log(string message)
     {
         try
         {
-            using (StreamWriter writer = new StreamWriter(logFilePath, append: true))
-            {
-                writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}");
-            }
+            using StreamWriter writer = new StreamWriter(LogFilePath, append: true);
+            writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}");
         }
         catch (Exception ex)
         {
@@ -507,6 +497,7 @@ public static class EarlyLogger
 public static class AsyncLogger
 {
     private static Task asyncLoggerTask;
+    [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     public static void StartLogger()
     {
         if (asyncLoggerTask is not null)
@@ -530,19 +521,19 @@ public static class AsyncLogger
 
 public static class SynchronizationManager
 {
-    public static DateTime UnityStartTime { get; internal set; } = DateTime.Now;
-    public static DateTime ResoniteStartTime { get; internal set; } = DateTime.Now;
-    public static TimeSpan UnityLastUpdateInterval { get; internal set; } = TimeSpan.Zero;
-    public static TimeSpan ResoniteLastUpdateInterval { get; internal set; } = TimeSpan.Zero;
+    public static DateTime UnityStartTime { get; private set; } = DateTime.Now;
+    public static DateTime ResoniteStartTime { get; private set; } = DateTime.Now;
+    public static TimeSpan UnityLastUpdateInterval { get; private set; } = TimeSpan.Zero;
+    public static TimeSpan ResoniteLastUpdateInterval { get; private set; } = TimeSpan.Zero;
 
     public static void OnUnityUpdate()
     {
         UnityLastUpdateInterval = DateTime.Now - UnityStartTime;
 
-        var ticktime = TimeSpan.FromMilliseconds((1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate)));
-        if (DateTime.Now - UnityStartTime < ticktime)
+        var tickTime = TimeSpan.FromMilliseconds((1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate)));
+        if (DateTime.Now - UnityStartTime < tickTime)
         {
-            Thread.Sleep(ticktime - UnityLastUpdateInterval);
+            Thread.Sleep(tickTime - UnityLastUpdateInterval);
         }
 
         UnityStartTime = DateTime.Now;
@@ -550,25 +541,26 @@ public static class SynchronizationManager
     public static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
-        lock (Thundagun.engineCompletionStatus)
-            Thundagun.engineCompletionStatus.EngineCompleted = true;
+        lock (Thundagun.EngineCompletionStatus)
+            Thundagun.EngineCompletionStatus.EngineCompleted = true;
 
-        while (Thundagun.engineCompletionStatus.EngineCompleted && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+        while (Thundagun.EngineCompletionStatus.EngineCompleted && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
         {
             Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
         }
 
-        var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
-        if (DateTime.Now - ResoniteStartTime < ticktime)
+        var tickTime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
+        if (DateTime.Now - ResoniteStartTime < tickTime)
         {
-            Thread.Sleep(ticktime - ResoniteLastUpdateInterval);
+            Thread.Sleep(tickTime - ResoniteLastUpdateInterval);
         }
 
         ResoniteStartTime = DateTime.Now;
     }
 }
 
+[SuppressMessage("ReSharper", "InconsistentNaming")]
 public class EngineCompletionStatus
 {
-    public bool EngineCompleted = false;
+    public bool EngineCompleted;
 }
