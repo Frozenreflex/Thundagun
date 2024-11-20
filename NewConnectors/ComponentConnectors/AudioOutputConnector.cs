@@ -54,7 +54,6 @@ public class ApplyChangesAudioOutputConnector : UpdatePacket<AudioOutputConnecto
         ShouldBeEnabled = owner.Owner.ShouldBeEnabled;
         if (ShouldBeEnabled)
         {
-            //TODO: do we need to make audio targets async too? or are they thread safe?
             Target = owner.Owner.Source.Target;
             ActualVolume = owner.Owner.ActualVolume;
             Priority = MathX.Clamp(owner.Owner.Priority.Value, 0, byte.MaxValue);
@@ -92,7 +91,6 @@ public class ApplyChangesAudioOutputConnector : UpdatePacket<AudioOutputConnecto
             if (unityAudio.spatialize != Spatialize)
             {
                 unityAudio.spatialize = Spatialize;
-                //TODO: ?????
                 if (Owner.Owner is not null && !Owner.Owner.IsDestroyed)
                 {
                     if (Spatialize) Owner.Engine.AudioSystem.SpatializerEnabled(Owner.Owner);

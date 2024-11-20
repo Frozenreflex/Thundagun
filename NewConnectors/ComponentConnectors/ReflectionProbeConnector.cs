@@ -145,7 +145,7 @@ public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbe
     {
         var probe = Owner.probe;
         probe.mode = ProbeMode;
-        if (RefreshMode != default) probe.refreshMode = RefreshMode; //???
+        if (RefreshMode != default) probe.refreshMode = RefreshMode;
         probe.customBakedTexture = BakedTexture?.UnityTexture;
         probe.importance = ProbeImportance;
         probe.intensity = ProbeIntensity;

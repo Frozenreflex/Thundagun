@@ -226,11 +226,6 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
         var skinnedBounds = SkinnedBounds;
         if (MeshWasChanged || Skinned._currentBoundsMethod != skinnedBounds || BoundsChanged)
         {
-            //Owner.Owner.RunSynchronously(() =>
-            //{
-            //    Owner.Owner.ProxyBoundsSource.WasChanged = false;
-            //    Owner.Owner.ExplicitLocalBounds.WasChanged = false;
-            //});
             if (skinnedBounds != SkinnedBounds.Static && skinnedBounds != SkinnedBounds.Proxy &&
                 skinnedBounds != SkinnedBounds.Explicit)
             {

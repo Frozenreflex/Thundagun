@@ -46,7 +46,6 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
 
     private void LateUpdate()
     {
-        //TODO
         if (ParticleStyle == null) return;
 
         var particleStyle = ParticleStyle;

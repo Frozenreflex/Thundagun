@@ -40,10 +40,8 @@ public class DesktopUpdatePacket : UpdatePacket<DuplicableDisplay>
 
     public override void Update()
     {
-        //Thundagun.Msg("DesktopUpdatePacket Update start");
         if (_requests.Count == 0)
         {
-            //Thundagun.Msg("Requests count 0");
             Display._monitor = null;
             Display._window = null;
             Display.UpdateProperties(Monitor);
@@ -57,7 +55,6 @@ public class DesktopUpdatePacket : UpdatePacket<DuplicableDisplay>
                 UniLog.Log($"Monitor {Monitor.id}, name: {Monitor.name}, state: {Monitor.state}");
             if (Monitor.state == DuplicatorState.Unsupported)
             {
-                //Thundagun.Msg("unsupported");
                 _ = UwcManager.instance;
                 Display._window = UwcManager.Find(Monitor.name, false);
                 if (Display._window != null)
@@ -81,19 +78,15 @@ public class DesktopUpdatePacket : UpdatePacket<DuplicableDisplay>
             Display._monitor = Monitor;
             flag = true;
             if (_requests.Count > 0 && _window == null && (int)currentState == (int)State2.DirectCapture)
-                //Thundagun.Msg("creating texture if needed");
                 Display._monitor.CreateTextureIfNeeded();
         }
 
         if ((int)currentState != (int)State2.WaitingOnWindow)
         {
             if (_window != null)
-                //Thundagun.Msg("requesting capture");
                 Display._window.RequestCapture();
             else
-                //Thundagun.Msg("rendering");
                 Display._monitor.Render();
-            //Thundagun.Msg("calling desktop rendered");
             Engine.Current.DesktopRendered();
         }
 
@@ -107,7 +100,6 @@ public class DesktopUpdatePacket : UpdatePacket<DuplicableDisplay>
         if (!flag || ((int)currentState != 0 && (int)currentState != (int)State2.UsingWindowCapture)) return;
 
         foreach (var request in _requests)
-            //Thundagun.Msg("request invoke");
             request();
     }
 

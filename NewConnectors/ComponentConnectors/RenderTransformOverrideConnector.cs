@@ -26,7 +26,6 @@ public class RenderTransformOverrideConnector : RenderContextOverride<RenderTran
     public override void UpdateSetup()
     {
         if (!_registeredContext.HasValue) ClearRecalcRequests();
-        //base.Owner.RenderersDirty = true;
     }
 
     public override void DestroyMethod(bool destroyingWorld)
@@ -77,7 +76,6 @@ public class RenderTransformOverrideConnector : RenderContextOverride<RenderTran
             Pool.Return(ref hashSet);
             if (flag)
             {
-                //base.Owner.RenderersDirty = false;
             }
         }
 

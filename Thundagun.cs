@@ -105,7 +105,6 @@ public class Thundagun : ResoniteMod
             }
         }
 
-        // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
         Engine.Current.RunPostInit(() => { Engine.Current.WorldManager.WorldFocused += WorldAdded; });
     }
 
@@ -472,8 +471,6 @@ public static class WorkerInitializerPatch
     {
         if (!workerType.GetInterfaces().Contains(typeof(IImplementable))) return;
 
-        //TODO: make this static
-        //get all connector types from this mod
         var types = typeof(Thundagun)
             .Assembly
             .GetTypes()

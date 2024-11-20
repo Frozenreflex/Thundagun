@@ -218,23 +218,17 @@ public class TextureConnector :
         {
             var profile = format.Profile;
             var graphicsFormat = format.Format.ToUnityExperimental(ref profile);
-            if (profile != format.Profile) _targetProfile = profile; //new ColorProfile?(profile);
+            if (profile != format.Profile) _targetProfile = profile;
             if (_unityTexture3D == null || _unityTexture3D.width != format.Width ||
                 _unityTexture3D.height != format.Height || _unityTexture3D.depth != format.Depth ||
                 _unityTexture3D.graphicsFormat != graphicsFormat ||
                 _unityTexture3D.mipmapCount > 1 != format.Mips > 1 || profile != _targetProfile)
             {
                 Destroy();
-                _targetProfile = profile; //new ColorProfile?(profile);
+                _targetProfile = profile;
                 _unityTexture3D = new Texture3D(format.Width, format.Height, format.Depth, graphicsFormat,
                     TextureCreationFlags.None);
                 environmentInstanceChanged = true;
-                //ColorProfile colorProfile = profile;
-                //ColorProfile? targetProfile = this._targetProfile;
-                //if (colorProfile == targetProfile.GetValueOrDefault() & targetProfile != null)
-                //{
-                //goto IL_199;
-                //}
             }
         }
 
@@ -276,7 +270,6 @@ public class TextureConnector :
     {
         if (data.Bitmap3D != null)
         {
-            //UnityAssetIntegrator.EnqueueRenderThreadProcessing(() => UploadTextureDataUnity(data));
             EnqueueUnityUpload();
             return;
         }
@@ -349,8 +342,6 @@ public class TextureConnector :
         }
         else if (data.Bitmap3D != null)
         {
-            //ColorProfile profile = data.Bitmap3D.Profile;
-            //ColorProfile? targetProfile = _targetProfile;
             if (_targetProfile.HasValue && data.Bitmap3D.Profile != _targetProfile)
                 data.Bitmap3D.ConvertToProfile(_targetProfile.Value);
             _unityTexture3D.SetPixelData(data.Bitmap3D.RawData, data.StartMip);

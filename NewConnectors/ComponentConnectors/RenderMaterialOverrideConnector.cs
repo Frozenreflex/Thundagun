@@ -55,7 +55,6 @@ public class RenderMaterialOverrideConnector : RenderContextOverride<RenderMater
 
     public override void UpdateSetup()
     {
-        //mesh = base.Owner.Renderer.Target?.Connector as IRendererConnector;
         while (overrides.Count > OverridesCount) overrides.RemoveAt(overrides.Count - 1);
         while (OverridesCount > overrides.Count) overrides.Add(new MaterialOverride());
         for (var i = 0; i < OverridesCount; i++)

@@ -107,7 +107,6 @@ public class UMPVideoTextureBehaviour : MonoBehaviour, IVideoTextureBehaviour
                     LiveCaching = 300,
                     DiskCaching = 300,
                     NetworkCaching = 300
-                    //LogDetail = LogLevels.Disable
                 };
                 break;
             case UMPSettings.Platforms.Android:
