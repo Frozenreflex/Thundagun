@@ -43,25 +43,27 @@ public class Thundagun : ResoniteMod
 
     internal static ModConfiguration Config;
 
-    [AutoRegisterConfigKey]
-    internal static readonly ModConfigurationKey<bool> DebugLogging =
+    [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<bool> DebugLogging =
         new("DebugLogging", "Debug Logging: Whether to enable debug logging.", () => false,
             false, _ => true);
-    [AutoRegisterConfigKey]
-    internal static readonly ModConfigurationKey<double> LoggingRate =
-      new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0,
-          false, value => value >= 0.001 || value <= 1000.0);
-    [AutoRegisterConfigKey]
-    internal static readonly ModConfigurationKey<double> MaxEngineTickRate =
-        new("MaxEngineTickRate", "Max Engine Tick Rate: The max rate per second at which FrooxEngine can update.", () => 1000.0,
+
+    [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<double> LoggingRate =
+        new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0,
+            false, value => value >= 0.001 || value <= 1000.0);
+
+    [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<double> MaxEngineTickRate =
+        new("MaxEngineTickRate", "Max Engine Tick Rate: The max rate per second at which FrooxEngine can update.",
+            () => 1000.0,
             false, value => value >= 1.0);
-    [AutoRegisterConfigKey]
-    internal static readonly ModConfigurationKey<double> MaxUnityTickRate =
+
+    [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<double> MaxUnityTickRate =
         new("MaxUnityTickRate", "Max Unity Tick Rate: The max rate per second at which Unity can update.", () => 1000.0,
             false, value => value >= 1.0);
-    [AutoRegisterConfigKey]
-    internal static readonly ModConfigurationKey<bool> RenderIncompleteUpdates =
-        new("RenderIncompleteUpdates", "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can look glitchy.", () => false,
+
+    [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<bool> RenderIncompleteUpdates =
+        new("RenderIncompleteUpdates",
+            "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can look glitchy.",
+            () => false,
             false, _ => true);
 
     public override void OnEngineInit()
@@ -90,15 +92,13 @@ public class Thundagun : ResoniteMod
         void WorldAdded(World w)
         {
             if (w.IsUserspace()) return;
-            harmony.Patch(AccessTools.Method(typeof(DuplicableDisplay), "Update"), prefix: new HarmonyMethod(PatchDesktop.Prefix));
+            harmony.Patch(AccessTools.Method(typeof(DuplicableDisplay), "Update"),
+                prefix: new HarmonyMethod(PatchDesktop.Prefix));
             Engine.Current.WorldManager.WorldFocused -= WorldAdded;
         }
 
         // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
-        Engine.Current.RunPostInit(() =>
-        {
-            Engine.Current.WorldManager.WorldFocused += WorldAdded;
-        });
+        Engine.Current.RunPostInit(() => { Engine.Current.WorldManager.WorldFocused += WorldAdded; });
     }
 
     private static void PatchEngineTypes()
@@ -164,12 +164,12 @@ public class Thundagun : ResoniteMod
 
 internal static class PatchDesktop
 {
-	[SuppressMessage("ReSharper", "InconsistentNaming")]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public static bool Prefix(DuplicableDisplay __instance, Monitor monitor)
-	{
-		Thundagun.QueuePacket(new DesktopUpdatePacket(__instance, monitor));
-		return false;
-	}
+    {
+        Thundagun.QueuePacket(new DesktopUpdatePacket(__instance, monitor));
+        return false;
+    }
 }
 
 [HarmonyPatch(typeof(FrooxEngineRunner))]
@@ -187,8 +187,10 @@ public static class FrooxEngineRunnerPatch
     [HarmonyPatch("Update")]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public static bool Update(FrooxEngineRunner __instance,
-        ref Engine ____frooxEngine, ref bool ____shutdownRequest, ref Stopwatch ____externalUpdate, ref World ____lastFocusedWorld,
-        ref HeadOutput ____vrOutput, ref HeadOutput ____screenOutput, ref AudioListener ____audioListener, ref List<World> ____worlds)
+        ref Engine ____frooxEngine, ref bool ____shutdownRequest, ref Stopwatch ____externalUpdate,
+        ref World ____lastFocusedWorld,
+        ref HeadOutput ____vrOutput, ref HeadOutput ____screenOutput, ref AudioListener ____audioListener,
+        ref List<World> ____worlds)
     {
         shutdown = ____shutdownRequest;
         if (!__instance.IsInitialized || ____frooxEngine == null)
@@ -208,7 +210,8 @@ public static class FrooxEngineRunnerPatch
                 PatchHeadOutput(____vrOutput);
                 PatchHeadOutput(____screenOutput);
 
-                var toRemove = __instance.gameObject.scene.GetRootGameObjects().SelectMany(i => i.GetComponentsInChildren<CameraPostprocessingManager>());
+                var toRemove = __instance.gameObject.scene.GetRootGameObjects()
+                    .SelectMany(i => i.GetComponentsInChildren<CameraPostprocessingManager>());
                 foreach (var remove in toRemove)
                 {
                     ResoniteMod.Msg("deleting a stray post-processing manager");
@@ -227,7 +230,8 @@ public static class FrooxEngineRunnerPatch
                     {
                         var total = 0;
                         lock (AssetsProcessed)
-                            while (AssetsProcessed.Any()) total += AssetsProcessed.Dequeue();
+                            while (AssetsProcessed.Any())
+                                total += AssetsProcessed.Dequeue();
 
                         engine.AssetsUpdated(total);
                         engine.RunUpdateLoop();
@@ -242,12 +246,14 @@ public static class FrooxEngineRunnerPatch
 
                 var focusedWorld = engine.WorldManager.FocusedWorld;
                 var lastFocused = ____lastFocusedWorld;
-                UpdateHeadOutput(focusedWorld, engine, ____vrOutput, ____screenOutput, ____audioListener, ref ____worlds);
+                UpdateHeadOutput(focusedWorld, engine, ____vrOutput, ____screenOutput, ____audioListener,
+                    ref ____worlds);
 
 
                 engine.InputInterface.UpdateWindowResolution(new int2(Screen.width, Screen.height));
 
-                if (Thundagun.EngineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+                if (Thundagun.EngineCompletionStatus.EngineCompleted ||
+                    Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
                 {
                     List<IUpdatePacket> updates;
                     lock (Thundagun.CurrentPackets)
@@ -261,14 +267,13 @@ public static class FrooxEngineRunnerPatch
                         try
                         {
                             update.Update();
-
-
                         }
                         catch (Exception e)
                         {
                             ResoniteMod.Msg(e);
                         }
                     }
+
                     lock (Thundagun.EngineCompletionStatus)
                         Thundagun.EngineCompletionStatus.EngineCompleted = false;
                 }
@@ -277,10 +282,14 @@ public static class FrooxEngineRunnerPatch
                 {
                     DynamicGIManager.ScheduleDynamicGIUpdate(true);
                     ____lastFocusedWorld = focusedWorld;
-                    ____frooxEngine.GlobalCoroutineManager.RunInUpdates(10, () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
-                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(1f, () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
-                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(5f, () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
+                    ____frooxEngine.GlobalCoroutineManager.RunInUpdates(10,
+                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
+                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(1f,
+                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
+                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(5f,
+                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
                 }
+
                 UpdateQualitySettings(__instance);
 
                 LastRender = DateTime.Now;
@@ -297,9 +306,11 @@ public static class FrooxEngineRunnerPatch
 
                 return false;
             }
+
             __instance.DynamicGI?.UpdateDynamicGI();
             ____externalUpdate.Restart();
         }
+
         return false;
     }
 
@@ -327,7 +338,8 @@ public static class FrooxEngineRunnerPatch
     [SuppressMessage("ReSharper", "UnusedParameter.Local")]
     private static void UpdateFrameRate(object instance) => throw new NotImplementedException("stub");
 
-    private static void UpdateHeadOutput(World focusedWorld, Engine engine, HeadOutput vr, HeadOutput screen, AudioListener listener, ref List<World> worlds)
+    private static void UpdateHeadOutput(World focusedWorld, Engine engine, HeadOutput vr, HeadOutput screen,
+        AudioListener listener, ref List<World> worlds)
     {
         if (focusedWorld == null) return;
         var num = engine.InputInterface.VR_Active ? 1 : 0;
@@ -349,6 +361,7 @@ public static class FrooxEngineRunnerPatch
             position = cameraRoot.position;
             rotation = cameraRoot.rotation;
         }
+
         listener.transform.SetPositionAndRotation(position, rotation);
         engine.WorldManager.GetWorlds(worlds);
         var transform1 = headOutput1.transform;
@@ -365,6 +378,7 @@ public static class FrooxEngineRunnerPatch
             t.rotation = transform1.rotation * userGlobalRotation.ToUnity();
             t.localScale = transform1.localScale;
         }
+
         worlds.Clear();
     }
 
@@ -372,6 +386,7 @@ public static class FrooxEngineRunnerPatch
     [HarmonyPatch("UpdateQualitySettings")]
     [SuppressMessage("ReSharper", "UnusedParameter.Local")]
     private static void UpdateQualitySettings(object instance) => throw new NotImplementedException("stub");
+
     private static void Shutdown(this FrooxEngineRunner runner, ref Engine engine)
     {
         UniLog.Log("Shutting down");
@@ -384,6 +399,7 @@ public static class FrooxEngineRunnerPatch
             UniLog.Error($"Exception: {ex}");
             UniLog.Error("Exception disposing the engine:\n" + engine);
         }
+
         engine = null;
         try
         {
@@ -403,6 +419,7 @@ public static class FrooxEngineRunnerPatch
 public static class AssetInitializerPatch
 {
     private static readonly Dictionary<Type, Type> Connectors = new();
+
     static AssetInitializerPatch()
     {
         var ourTypes = typeof(Thundagun).Assembly.GetTypes()
@@ -411,12 +428,14 @@ public static class AssetInitializerPatch
         {
             if (!t.IsClass || t.IsAbstract || !typeof(Asset).IsAssignableFrom(t))
                 return false;
-            return t.InheritsFromGeneric(typeof(ImplementableAsset<,>)) || t.InheritsFromGeneric(typeof(DynamicImplementableAsset<>));
+            return t.InheritsFromGeneric(typeof(ImplementableAsset<,>)) ||
+                   t.InheritsFromGeneric(typeof(DynamicImplementableAsset<>));
         }).ToList();
 
         foreach (var t in theirTypes)
         {
-            var connectorType = t.GetProperty("Connector", BindingFlags.FlattenHierarchy | BindingFlags.Instance | BindingFlags.Public)?.PropertyType;
+            var connectorType = t.GetProperty("Connector",
+                BindingFlags.FlattenHierarchy | BindingFlags.Instance | BindingFlags.Public)?.PropertyType;
             if (connectorType is null) continue;
             var list = ourTypes.Where(i => connectorType.IsAssignableFrom(i)).ToList();
             if (list.Count == 1)
@@ -425,6 +444,7 @@ public static class AssetInitializerPatch
             }
         }
     }
+
     [HarmonyPrefix]
     [HarmonyPatch("GetConnectorType")]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -474,7 +494,6 @@ public interface IUpdatePacket
     public void Update();
 }
 
-
 public static class EarlyLogger
 {
     private const string LogFilePath = "ThundagunLogs/log.txt";
@@ -493,10 +512,10 @@ public static class EarlyLogger
     }
 }
 
-
 public static class AsyncLogger
 {
     private static Task asyncLoggerTask;
+
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     public static void StartLogger()
     {
@@ -538,13 +557,15 @@ public static class SynchronizationManager
 
         UnityStartTime = DateTime.Now;
     }
+
     public static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
         lock (Thundagun.EngineCompletionStatus)
             Thundagun.EngineCompletionStatus.EngineCompleted = true;
 
-        while (Thundagun.EngineCompletionStatus.EngineCompleted && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+        while (Thundagun.EngineCompletionStatus.EngineCompleted &&
+               !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
         {
             Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
         }
