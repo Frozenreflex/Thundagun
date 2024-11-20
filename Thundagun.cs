@@ -26,8 +26,10 @@ namespace Thundagun;
 public class Thundagun : ResoniteMod
 {
     public override string Name => "Thundagun";
-    public override string Author => "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK"; // in order of first commit
-    public override string Version => "1.1.1"; // change minor version for config "API" changes
+    public override string Author => AuthorString; // in order of first commit
+    public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK";
+    public override string Version => VersionString; // change minor version for config "API" changes
+    public const string VersionString = "1.1.1";
     
     public static readonly Queue<IUpdatePacket> CurrentPackets = new();
 
