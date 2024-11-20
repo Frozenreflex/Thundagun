@@ -33,7 +33,7 @@ public class Thundagun : ResoniteMod
 
     public static Task FrooxEngineTask;
     
-    public static EngineCompletionStatus engineCompletionStatus = new EngineCompletionStatus();
+    public static ManualResetEvent engineCompletionStatus = new(false);
 
     public static void QueuePacket(IUpdatePacket packet)
     {
@@ -249,7 +249,7 @@ public static class FrooxEngineRunnerPatch
 
                 var boilerplateTime = DateTime.Now;
                 
-                if (Thundagun.engineCompletionStatus.EngineCompleted || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+                if (Thundagun.engineCompletionStatus.WaitOne(TimeSpan.Zero) || Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
                 {
                     List<IUpdatePacket> updates;
                     lock (Thundagun.CurrentPackets)
@@ -271,8 +271,9 @@ public static class FrooxEngineRunnerPatch
                             Thundagun.Msg(e);
                         }
                     }
+
                     lock (Thundagun.engineCompletionStatus)
-                        Thundagun.engineCompletionStatus.EngineCompleted = false;
+                        Thundagun.engineCompletionStatus.Reset();
                 }
 
                 var assetTime = DateTime.Now;
@@ -550,12 +551,11 @@ public static class SynchronizationManager
     public static void OnResoniteUpdate()
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
-        lock (Thundagun.engineCompletionStatus)
-            Thundagun.engineCompletionStatus.EngineCompleted = true;
+        Thundagun.engineCompletionStatus.Set();
 
-        while (Thundagun.engineCompletionStatus.EngineCompleted && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
+        while (Thundagun.engineCompletionStatus.WaitOne(TimeSpan.Zero) && !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
         {
-            Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
+            Thundagun.engineCompletionStatus.WaitOne(TimeSpan.FromMilliseconds(0.1));
         }
 
         var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
@@ -566,9 +566,4 @@ public static class SynchronizationManager
 
         ResoniteStartTime = DateTime.Now;
     }
-}
-
-public class EngineCompletionStatus
-{
-    public bool EngineCompleted = false;
 }
