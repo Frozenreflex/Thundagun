@@ -17,6 +17,7 @@ using ResoniteModLoader;
 using Thundagun.NewConnectors.AssetConnectors;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+using Component = UnityEngine.Component;
 using Monitor = uDesktopDuplication.Monitor;
 using Object = UnityEngine.Object;
 using RenderConnector = Thundagun.NewConnectors.RenderConnector;
@@ -34,13 +35,13 @@ public class Thundagun : ResoniteMod
     public override string Author => "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK"; // in order of first commit
     public override string Version => "1.1.1"; // change minor version for config "API" changes
 
-    public static readonly Queue<IUpdatePacket> CurrentPackets = new();
+    internal static readonly Queue<IUpdatePacket> CurrentPackets = new();
 
-    public static Task FrooxEngineTask;
+    internal static Task FrooxEngineTask;
 
-    public static readonly EngineCompletionStatus EngineCompletionStatus = new();
+    internal static readonly EngineCompletionStatus EngineCompletionStatus = new();
 
-    public static void QueuePacket(IUpdatePacket packet)
+    internal static void QueuePacket(IUpdatePacket packet)
     {
         lock (CurrentPackets)
         {
@@ -51,27 +52,25 @@ public class Thundagun : ResoniteMod
     internal static ModConfiguration Config;
 
     [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<bool> DebugLogging =
-        new("DebugLogging", "Debug Logging: Whether to enable debug logging.", () => false,
-            false, _ => true);
+        new("DebugLogging", "Debug Logging: Whether to enable debug logging.", static () => false,
+            false, static _ => true);
 
     [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<double> LoggingRate =
-        new("LoggingRate", "Logging Rate: The rate of log updates per second.", () => 10.0,
-            false, value => value >= 0.001 || value <= 1000.0);
+        new("LoggingRate", "Logging Rate: The rate of log updates per second.", static () => 10.0,
+            false, static value => value is >= 0.001 or <= 1000.0);
 
     [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<double> MaxEngineTickRate =
-        new("MaxEngineTickRate", "Max Engine Tick Rate: The max rate per second at which FrooxEngine can update.",
-            () => 1000.0,
-            false, value => value >= 1.0);
+        new("MaxEngineTickRate", "Max Engine Tick Rate: The max rate per second at which FrooxEngine can update.", static () => 1000.0,
+            false, static value => value >= 1.0);
 
     [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<double> MaxUnityTickRate =
-        new("MaxUnityTickRate", "Max Unity Tick Rate: The max rate per second at which Unity can update.", () => 1000.0,
-            false, value => value >= 1.0);
+        new("MaxUnityTickRate", "Max Unity Tick Rate: The max rate per second at which Unity can update.", static () => 1000.0,
+            false, static value => value >= 1.0);
 
     [AutoRegisterConfigKey] internal static readonly ModConfigurationKey<bool> RenderIncompleteUpdates =
         new("RenderIncompleteUpdates",
-            "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can look glitchy.",
-            () => false,
-            false, _ => true);
+            "Render Incomplete Updates: Allow Unity to process and render engine changes in realtime. Can look glitchy.", static () => false,
+            false, static _ => true);
 
     public override void OnEngineInit()
     {
@@ -105,7 +104,6 @@ public class Thundagun : ResoniteMod
             Engine.Current.WorldManager.WorldFocused -= WorldAdded;
         }
 
-        // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
         Engine.Current.RunPostInit(() => { Engine.Current.WorldManager.WorldFocused += WorldAdded; });
     }
 
@@ -145,7 +143,7 @@ public class Thundagun : ResoniteMod
     private static void PatchComponentConnectors(Harmony harmony)
     {
         var types = typeof(Thundagun).Assembly.GetTypes()
-            .Where(i => i.IsClass && i.GetInterfaces().Contains(typeof(IConnector))).ToList();
+            .Where(static i => i.IsClass && i.GetInterfaces().Contains(typeof(IConnector))).ToList();
 
         var initInfosField = typeof(WorkerInitializer).GetField("initInfos", AccessTools.all);
         var initInfos = (ConcurrentDictionary<Type, WorkerInitInfo>)initInfosField?.GetValue(null);
@@ -185,14 +183,12 @@ public static class FrooxEngineRunnerPatch
 {
     private static readonly Queue<int> AssetsProcessed = new();
 
-    public static DateTime LastRender;
-    public static DateTime LastTick;
-
     private static bool firstRunEngine;
     private static bool shutdown;
 
     [HarmonyPrefix]
     [HarmonyPatch("Update")]
+    [SuppressMessage("ReSharper", "FunctionComplexityOverflow")]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public static bool Update(FrooxEngineRunner __instance,
@@ -221,7 +217,7 @@ public static class FrooxEngineRunnerPatch
                 PatchHeadOutput(____screenOutput);
 
                 var toRemove = __instance.gameObject.scene.GetRootGameObjects()
-                    .SelectMany(i => i.GetComponentsInChildren<CameraPostprocessingManager>());
+                    .SelectMany(static i => i.GetComponentsInChildren<CameraPostprocessingManager>());
                 foreach (var remove in toRemove)
                 {
                     ResoniteMod.Msg("deleting a stray post-processing manager");
@@ -241,10 +237,7 @@ public static class FrooxEngineRunnerPatch
                         var total = 0;
                         lock (AssetsProcessed)
                         {
-                            while (AssetsProcessed.Any())
-                            {
-                                total += AssetsProcessed.Dequeue();
-                            }
+                            while (AssetsProcessed.Any()) total += AssetsProcessed.Dequeue();
                         }
 
                         engine.AssetsUpdated(total);
@@ -296,17 +289,12 @@ public static class FrooxEngineRunnerPatch
                 {
                     DynamicGIManager.ScheduleDynamicGIUpdate(true);
                     ____lastFocusedWorld = focusedWorld;
-                    ____frooxEngine.GlobalCoroutineManager.RunInUpdates(10,
-                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
-                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(1f,
-                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
-                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(5f,
-                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
+                    ____frooxEngine.GlobalCoroutineManager.RunInUpdates(10, static () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
+                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(1f, static () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
+                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(5f, static () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
                 }
 
                 UpdateQualitySettings(__instance);
-
-                LastRender = DateTime.Now;
             }
             catch (Exception ex)
             {
@@ -321,7 +309,7 @@ public static class FrooxEngineRunnerPatch
                 return false;
             }
 
-            __instance.DynamicGI?.UpdateDynamicGI();
+            __instance.DynamicGI.UpdateDynamicGI();
             ____externalUpdate.Restart();
         }
 
@@ -357,7 +345,7 @@ public static class FrooxEngineRunnerPatch
     }
 
     private static void UpdateHeadOutput(World focusedWorld, Engine engine, HeadOutput vr, HeadOutput screen,
-        AudioListener listener, ref List<World> worlds)
+        Component listener, ref List<World> worlds)
     {
         if (focusedWorld == null) return;
 
@@ -446,8 +434,8 @@ public static class AssetInitializerPatch
     static AssetInitializerPatch()
     {
         var ourTypes = typeof(Thundagun).Assembly.GetTypes()
-            .Where(i => i.GetInterfaces().Contains(typeof(IAssetConnector))).ToList();
-        var theirTypes = typeof(Slot).Assembly.GetTypes().Where(t =>
+            .Where(static i => i.GetInterfaces().Contains(typeof(IAssetConnector))).ToList();
+        var theirTypes = typeof(Slot).Assembly.GetTypes().Where(static t =>
         {
             if (!t.IsClass || t.IsAbstract || !typeof(Asset).IsAssignableFrom(t))
                 return false;
@@ -470,6 +458,7 @@ public static class AssetInitializerPatch
     [HarmonyPrefix]
     [HarmonyPatch("GetConnectorType")]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public static bool GetConnectorType(Asset asset, ref Type __result)
     {
         if (!Connectors.TryGetValue(asset.GetType(), out var t)) return true;
@@ -486,12 +475,10 @@ public static class WorkerInitializerPatch
     {
         if (!workerType.GetInterfaces().Contains(typeof(IImplementable))) return;
 
-        //TODO: make this static
-        //get all connector types from this mod
         var types = typeof(Thundagun)
             .Assembly
             .GetTypes()
-            .Where(i => i.IsClass && i.GetInterfaces().Contains(typeof(IConnector)))
+            .Where(static i => i.IsClass && i.GetInterfaces().Contains(typeof(IConnector)))
             .ToList();
 
         var connectorType = typeof(IConnector<>)
@@ -544,7 +531,7 @@ public static class AsyncLogger
         if (asyncLoggerTask is not null)
             return;
 
-        asyncLoggerTask = Task.Run(() =>
+        asyncLoggerTask = Task.Run(static () =>
         {
             while (true)
             {
