@@ -206,7 +206,7 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
 
         Bones = new List<SlotConnector>();
         foreach (var bone in owner.Owner.Bones)
-            if (bone?.Connector is SlotConnector slotConnector)
+            if (bone?.Connector is SlotConnector)
                 Bones.Add(bone?.Connector as SlotConnector);
             else
                 Bones.Add(null);

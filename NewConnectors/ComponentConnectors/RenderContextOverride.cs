@@ -135,7 +135,7 @@ public class ApplyChangesRenderContextOverrideConnector<D> : UpdatePacket<D>
             {
                 if (skinnedMeshRenderer == null) continue;
 
-                if (skinnedMeshRenderer.Connector is not SkinnedMeshRendererConnector skinnedMeshRendererConnector)
+                if (skinnedMeshRenderer.Connector is not SkinnedMeshRendererConnector)
                     rto.RenderersDirty = false;
             }
 

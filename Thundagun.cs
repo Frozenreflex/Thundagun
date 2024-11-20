@@ -117,8 +117,6 @@ public class Thundagun : ResoniteMod
         {
             var field1 = type.GetField("__connectorType",
                 BindingFlags.FlattenHierarchy | BindingFlags.NonPublic | BindingFlags.Static);
-            var field2 = type.GetField("__connectorTypes",
-                BindingFlags.FlattenHierarchy | BindingFlags.NonPublic | BindingFlags.Static);
 
             if (type == typeof(Slot))
             {
@@ -227,7 +225,6 @@ public static class FrooxEngineRunnerPatch
             try
             {
                 UpdateFrameRate(__instance);
-                var starttime = DateTime.Now;
 
                 var engine = ____frooxEngine;
                 Thundagun.FrooxEngineTask ??= Task.Run(() =>
@@ -240,7 +237,6 @@ public static class FrooxEngineRunnerPatch
                             while (assets_processed.Any()) total += assets_processed.Dequeue();
                         }
 
-                        var beforeEngine = DateTime.Now;
                         engine.AssetsUpdated(total);
                         engine.RunUpdateLoop();
 
@@ -259,8 +255,6 @@ public static class FrooxEngineRunnerPatch
 
 
                 engine.InputInterface.UpdateWindowResolution(new int2(Screen.width, Screen.height));
-
-                var boilerplateTime = DateTime.Now;
 
                 if (Thundagun.engineCompletionStatus.EngineCompleted ||
                     Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
@@ -288,10 +282,6 @@ public static class FrooxEngineRunnerPatch
                     }
                 }
 
-                var assetTime = DateTime.Now;
-                var loopTime = DateTime.Now;
-                var updateTime = DateTime.Now;
-
                 if (focusedWorld != lastFocused)
                 {
                     DynamicGIManager.ScheduleDynamicGIUpdate(true);
@@ -306,14 +296,11 @@ public static class FrooxEngineRunnerPatch
 
                 UpdateQualitySettings(__instance);
 
-                var finishTime = DateTime.Now;
-
                 lastrender = DateTime.Now;
             }
             catch (Exception ex)
             {
                 ResoniteMod.Msg($"Exception updating FrooxEngine:\n{ex}");
-                var startwait = DateTime.Now;
                 var wait = new Task(() => Task.Delay(10000));
                 wait.Start();
                 wait.Wait();
