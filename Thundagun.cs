@@ -1,3 +1,5 @@
+#region
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -22,6 +24,8 @@ using SlotConnector = Thundagun.NewConnectors.SlotConnector;
 using UnityAssetIntegrator = Thundagun.NewConnectors.UnityAssetIntegrator;
 using WorldConnector = Thundagun.NewConnectors.WorldConnector;
 
+#endregion
+
 namespace Thundagun;
 
 public class Thundagun : ResoniteMod
@@ -34,11 +38,14 @@ public class Thundagun : ResoniteMod
 
     public static Task FrooxEngineTask;
 
-    public static readonly EngineCompletionStatus EngineCompletionStatus = new EngineCompletionStatus();
+    public static readonly EngineCompletionStatus EngineCompletionStatus = new();
 
     public static void QueuePacket(IUpdatePacket packet)
     {
-        lock (CurrentPackets) CurrentPackets.Enqueue(packet);
+        lock (CurrentPackets)
+        {
+            CurrentPackets.Enqueue(packet);
+        }
     }
 
     internal static ModConfiguration Config;
@@ -93,7 +100,7 @@ public class Thundagun : ResoniteMod
         {
             if (w.IsUserspace()) return;
             harmony.Patch(AccessTools.Method(typeof(DuplicableDisplay), "Update"),
-                prefix: new HarmonyMethod(PatchDesktop.Prefix));
+                new HarmonyMethod(PatchDesktop.Prefix));
             Engine.Current.WorldManager.WorldFocused -= WorldAdded;
         }
 
@@ -230,8 +237,10 @@ public static class FrooxEngineRunnerPatch
                     {
                         var total = 0;
                         lock (AssetsProcessed)
+                        {
                             while (AssetsProcessed.Any())
                                 total += AssetsProcessed.Dequeue();
+                        }
 
                         engine.AssetsUpdated(total);
                         engine.RunUpdateLoop();
@@ -263,7 +272,6 @@ public static class FrooxEngineRunnerPatch
                     }
 
                     foreach (var update in updates)
-                    {
                         try
                         {
                             update.Update();
@@ -272,10 +280,11 @@ public static class FrooxEngineRunnerPatch
                         {
                             ResoniteMod.Msg(e);
                         }
-                    }
 
                     lock (Thundagun.EngineCompletionStatus)
+                    {
                         Thundagun.EngineCompletionStatus.EngineCompleted = false;
+                    }
                 }
 
                 if (focusedWorld != lastFocused)
@@ -336,7 +345,10 @@ public static class FrooxEngineRunnerPatch
     [HarmonyReversePatch]
     [HarmonyPatch("UpdateFrameRate")]
     [SuppressMessage("ReSharper", "UnusedParameter.Local")]
-    private static void UpdateFrameRate(object instance) => throw new NotImplementedException("stub");
+    private static void UpdateFrameRate(object instance)
+    {
+        throw new NotImplementedException("stub");
+    }
 
     private static void UpdateHeadOutput(World focusedWorld, Engine engine, HeadOutput vr, HeadOutput screen,
         AudioListener listener, ref List<World> worlds)
@@ -385,7 +397,10 @@ public static class FrooxEngineRunnerPatch
     [HarmonyReversePatch]
     [HarmonyPatch("UpdateQualitySettings")]
     [SuppressMessage("ReSharper", "UnusedParameter.Local")]
-    private static void UpdateQualitySettings(object instance) => throw new NotImplementedException("stub");
+    private static void UpdateQualitySettings(object instance)
+    {
+        throw new NotImplementedException("stub");
+    }
 
     private static void Shutdown(this FrooxEngineRunner runner, ref Engine engine)
     {
@@ -438,10 +453,7 @@ public static class AssetInitializerPatch
                 BindingFlags.FlattenHierarchy | BindingFlags.Instance | BindingFlags.Public)?.PropertyType;
             if (connectorType is null) continue;
             var list = ourTypes.Where(i => connectorType.IsAssignableFrom(i)).ToList();
-            if (list.Count == 1)
-            {
-                Connectors.Add(t, list[0]);
-            }
+            if (list.Count == 1) Connectors.Add(t, list[0]);
         }
     }
 
@@ -502,7 +514,7 @@ public static class EarlyLogger
     {
         try
         {
-            using StreamWriter writer = new StreamWriter(LogFilePath, append: true);
+            using var writer = new StreamWriter(LogFilePath, true);
             writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}");
         }
         catch (Exception ex)
@@ -525,12 +537,10 @@ public static class AsyncLogger
         {
             while (true)
             {
-                DateTime now = DateTime.Now;
+                var now = DateTime.Now;
                 if (Thundagun.Config.GetValue(Thundagun.DebugLogging))
-                {
                     EarlyLogger.Log(
                         $"Unity current: {now - SynchronizationManager.UnityStartTime} Resonite current: {now - SynchronizationManager.ResoniteStartTime} UnityLastUpdateInterval: {SynchronizationManager.UnityLastUpdateInterval} ResoniteLastUpdateInterval: {SynchronizationManager.ResoniteLastUpdateInterval}");
-                }
 
                 Thread.Sleep((int)(1000.0 / Thundagun.Config.GetValue(Thundagun.LoggingRate)));
             }
@@ -549,11 +559,8 @@ public static class SynchronizationManager
     {
         UnityLastUpdateInterval = DateTime.Now - UnityStartTime;
 
-        var tickTime = TimeSpan.FromMilliseconds((1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate)));
-        if (DateTime.Now - UnityStartTime < tickTime)
-        {
-            Thread.Sleep(tickTime - UnityLastUpdateInterval);
-        }
+        var tickTime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate));
+        if (DateTime.Now - UnityStartTime < tickTime) Thread.Sleep(tickTime - UnityLastUpdateInterval);
 
         UnityStartTime = DateTime.Now;
     }
@@ -562,19 +569,16 @@ public static class SynchronizationManager
     {
         ResoniteLastUpdateInterval = DateTime.Now - ResoniteStartTime;
         lock (Thundagun.EngineCompletionStatus)
+        {
             Thundagun.EngineCompletionStatus.EngineCompleted = true;
+        }
 
         while (Thundagun.EngineCompletionStatus.EngineCompleted &&
                !Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
-        {
             Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
-        }
 
         var tickTime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
-        if (DateTime.Now - ResoniteStartTime < tickTime)
-        {
-            Thread.Sleep(tickTime - ResoniteLastUpdateInterval);
-        }
+        if (DateTime.Now - ResoniteStartTime < tickTime) Thread.Sleep(tickTime - ResoniteLastUpdateInterval);
 
         ResoniteStartTime = DateTime.Now;
     }
