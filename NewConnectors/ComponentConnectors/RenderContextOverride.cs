@@ -49,6 +49,7 @@ public abstract class RenderContextOverride<D> : ComponentConnectorSingle<D>
     public void RunOverride()
     {
         if (_isOverriden) throw new Exception("RenderTransform is already overriden!");
+
         _isOverriden = true;
         _overridenContext = RenderHelper.CurrentRenderingContext;
         Override();
@@ -57,6 +58,7 @@ public abstract class RenderContextOverride<D> : ComponentConnectorSingle<D>
     public void RunRestore()
     {
         if (!_isOverriden) throw new Exception("RenderTransform is not overriden");
+
         Restore();
         _isOverriden = false;
         _overridenContext = null;
@@ -132,6 +134,7 @@ public class ApplyChangesRenderContextOverrideConnector<D> : UpdatePacket<D>
             foreach (var skinnedMeshRenderer in rto.SkinnedMeshRenderers)
             {
                 if (skinnedMeshRenderer == null) continue;
+
                 if (skinnedMeshRenderer.Connector is not SkinnedMeshRendererConnector skinnedMeshRendererConnector)
                     rto.RenderersDirty = false;
             }
@@ -174,6 +177,7 @@ public class ApplyChangesRenderContextOverrideConnector<D> : UpdatePacket<D>
         if (RenderContextOverride._isOverriden)
             throw new InvalidOperationException("RenderTransform is overriden while being updated. " +
                                                 $"Current: {RenderHelper.CurrentRenderingContext}, Overriden: {RenderContextOverride._overridenContext}");
+
         if (RenderContextOverride._registeredContext.HasValue &&
             RenderHelper.CurrentRenderingContext == RenderContextOverride._registeredContext)
             RenderContextOverride.RunOverride();

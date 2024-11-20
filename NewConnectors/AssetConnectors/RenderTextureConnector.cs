@@ -33,6 +33,7 @@ public class RenderTextureConnector :
                 return;
             if (!_tex)
                 return;
+
             Object.Destroy(_tex);
         }, true);
     }

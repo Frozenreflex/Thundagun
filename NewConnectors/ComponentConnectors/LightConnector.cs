@@ -86,6 +86,7 @@ public class ApplyChangesLightConnector : UpdatePacket<LightConnector>
         };
         ShouldBeEnabled = owner.Owner.ShouldBeEnabled;
         if (!ShouldBeEnabled) return;
+
         var globalScale = owner.Owner.Slot.GlobalScale;
         Color = MathX.Clamp(MathX.FilterInvalid(owner.Owner.Color.Value), -64f, 64f).ToUnity(ColorProfile.sRGB);
         Intensity = MathX.Clamp(MathX.FilterInvalid(owner.Owner.Intensity.Value), -1024f, 1024f);
@@ -108,6 +109,7 @@ public class ApplyChangesLightConnector : UpdatePacket<LightConnector>
         if (Shadows.HasValue) Owner.UnityLight.shadows = Shadows.Value;
         Owner.UnityLight.enabled = ShouldBeEnabled;
         if (!ShouldBeEnabled) return;
+
         Owner.UnityLight.shadowNearPlane = 0.15f;
         Owner.UnityLight.color = Color;
         Owner.UnityLight.intensity = Intensity;

@@ -59,11 +59,14 @@ public class CameraPostprocessingManager : MonoBehaviour
     public void UpdatePostProcessing(bool enabled, bool motionBlur, bool screenspaceReflections)
     {
         if (_postProcessing == null) return;
+
         _postProcessing.enabled = enabled;
         if (_ao != null) _ao.enabled = enabled;
         if (!enabled) return;
+
         if (_motionBlur != null) _motionBlur.enabled.value = motionBlur;
         if (_ssr == null) return;
+
         _ssr.enabled.value = screenspaceReflections;
     }
 
@@ -150,6 +153,7 @@ public class CameraPostprocessingManager : MonoBehaviour
             if (IsVR)
             {
                 if (_ctaaVR != null) return;
+
                 _ctaaVR = gameObject.AddComponent<CTAAVR_SPS>();
                 _ctaaVR.AdaptiveSharpness = 0.2f;
                 _ctaaVR.SharpnessEnabled = false;
@@ -158,6 +162,7 @@ public class CameraPostprocessingManager : MonoBehaviour
             else
             {
                 if (_ctaaPC != null) return;
+
                 _ctaaPC = gameObject.AddComponent<CTAA_PC>();
                 _ctaaPC.AdaptiveSharpness = 0.2f;
             }
@@ -187,6 +192,7 @@ public class CameraPostprocessingManager : MonoBehaviour
 
         RemoveCTAA();
         if (_ao == null) return;
+
         Destroy(_ao);
         _ao = null;
     }
@@ -213,6 +219,7 @@ public class OnPostProcessingChangedPacket : UpdatePacket<CameraPostprocessingMa
     public override void Update()
     {
         if (Owner == null) return;
+
         if (Owner._motionBlur != null)
         {
             Owner._motionBlur.enabled.value = !Owner.IsVR && !MathX.Approximately(_motionBlurIntensity, 0.0f);

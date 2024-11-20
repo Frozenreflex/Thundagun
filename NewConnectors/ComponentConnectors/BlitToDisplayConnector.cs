@@ -71,6 +71,7 @@ public class ApplyChangesBlitToDisplayConnector : UpdatePacket<BlitToDisplayConn
         var target = owner.Owner.TargetUser.Target;
         Blit = target is not null && target.IsLocalUser;
         if (!Blit) return;
+
         Texture = owner.Owner.Texture.Asset.Connector as IUnityTextureProvider;
         DisplayIndex = owner.Owner.DisplayIndex.Value;
         Color = owner.Owner.BackgroundColor.Value.ToUnity(ColorProfile.sRGB);

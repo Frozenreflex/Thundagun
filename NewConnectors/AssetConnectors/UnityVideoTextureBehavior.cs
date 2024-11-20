@@ -75,6 +75,7 @@ public class UnityVideoTextureBehavior : MonoBehaviour, IVideoTextureBehaviour
     private void Update()
     {
         if (!_initialized) return;
+
         var texture = videoPlayer.texture;
         if (_lastTexture != texture)
         {
@@ -149,6 +150,7 @@ public class UnityVideoTextureBehavior : MonoBehaviour, IVideoTextureBehaviour
             {
                 var videoTextureConnector = connector;
                 if (videoTextureConnector == null) return null;
+
                 obj = videoTextureConnector.Engine.AssetManager.DarkCheckerTexture.GetUnity();
             }
 
@@ -163,6 +165,7 @@ public class UnityVideoTextureBehavior : MonoBehaviour, IVideoTextureBehaviour
         get
         {
             if (videoPlayer == null || !_initialized) return 0f;
+
             return videoPlayer.frameCount / videoPlayer.frameRate;
         }
     }
@@ -174,6 +177,7 @@ public class UnityVideoTextureBehavior : MonoBehaviour, IVideoTextureBehaviour
         get
         {
             if (videoPlayer?.texture == null || !_initialized) return int2.Zero;
+
             return new int2(videoPlayer.texture.width, videoPlayer.texture.height);
         }
     }
@@ -229,6 +233,7 @@ public class UnityVideoTextureBehavior : MonoBehaviour, IVideoTextureBehaviour
     private void OnAudioFilterUpdate()
     {
         if (!_initialized) return;
+
         var bufferSize = connector.Engine.AudioSystem.BufferSize;
         if (_audioData == null) _audioData = _audioData.EnsureExactSize(bufferSize * 2);
         var lockTaken = false;
@@ -291,6 +296,7 @@ public class UnityVideoTextureBehavior : MonoBehaviour, IVideoTextureBehaviour
     private IEnumerator InitTimeout()
     {
         yield return new WaitForSeconds(10f);
+
         if (!_initialized && onReady != null)
         {
             UniLog.Warning("UnityVideoTexture Timeout");

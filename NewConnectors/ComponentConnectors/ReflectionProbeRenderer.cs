@@ -32,6 +32,7 @@ public class ReflectionProbeRenderer : MonoBehaviour
     private void Update()
     {
         if (!probe.IsFinishedRendering(renderId)) return;
+
         try
         {
             FinishRender();

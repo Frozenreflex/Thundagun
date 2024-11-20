@@ -94,6 +94,7 @@ public class TextureConnector :
         _onPropertiesSet = onSet;
         if (onSet == null)
             return;
+
         UnityAssetIntegrator.EnqueueProcessing(UpdateTextureProperties, Asset.HighPriorityIntegration);
     }
 
@@ -147,6 +148,7 @@ public class TextureConnector :
         _onPropertiesSet = onSet;
         if (onSet == null)
             return;
+
         UnityAssetIntegrator.EnqueueProcessing(UpdateTextureProperties, Asset.HighPriorityIntegration);
     }
 
@@ -397,6 +399,7 @@ public class TextureConnector :
     {
         if (!_texturePropertiesDirty)
             return;
+
         _texturePropertiesDirty = false;
         if (UnityTexture2D != null)
         {
@@ -705,8 +708,10 @@ public class TextureConnector :
             {
                 var bitmap2D = Bitmap2D;
                 if (bitmap2D != null) return bitmap2D.Size;
+
                 var bitmapCube = BitmapCube;
                 if (bitmapCube == null) return int2.Zero;
+
                 return bitmapCube.Size;
             }
         }
@@ -718,6 +723,7 @@ public class TextureConnector :
                 if (Bitmap2D != null) return 1;
                 if (BitmapCube != null) return 6;
                 if (Bitmap3D != null) return Bitmap3D.Size.z;
+
                 throw new Exception("Invalid state, must have either Bitmap2D, BitmapCUBE or Bitmap3D");
             }
         }
@@ -726,8 +732,10 @@ public class TextureConnector :
         {
             var bitmap2D = Bitmap2D;
             if (bitmap2D != null) return bitmap2D.MipMapSize(mip);
+
             var bitmapCube = BitmapCube;
             if (bitmapCube == null) return int2.Zero;
+
             return bitmapCube.MipMapSize(mip);
         }
 
@@ -735,6 +743,7 @@ public class TextureConnector :
         {
             var bitmap2D = Bitmap2D;
             if (bitmap2D == null) return BitmapCube.PixelStart(x, y, (BitmapCube.Face)face, mip);
+
             return bitmap2D.PixelStart(x, y, mip);
         }
 

@@ -32,6 +32,7 @@ public class SkinnedMeshRendererConnector :
         {
             var forceRecalcRegistrations = _forceRecalcRegistrations;
             if (forceRecalcRegistrations == null) return false;
+
             return forceRecalcRegistrations.Count > 0;
         }
     }
@@ -68,6 +69,7 @@ public class SkinnedMeshRendererConnector :
         base.OnCleanupRenderer();
         if (!(_boundsUpdater != null))
             return;
+
         CleanupBoundsUpdater();
     }
 
@@ -89,11 +91,13 @@ public class SkinnedMeshRendererConnector :
     {
         if (_sendingBoundsUpdate)
             return;
+
         try
         {
             _sendingBoundsUpdate = true;
             if (BoundsUpdated == null)
                 return;
+
             BoundsUpdated.Invoke();
         }
         finally
@@ -106,6 +110,7 @@ public class SkinnedMeshRendererConnector :
     {
         if (_proxySource == null)
             return;
+
         _proxySource.BoundsUpdated -= ProxyBoundsUpdated;
         _proxySource = null;
     }
@@ -293,6 +298,7 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
                     {
                         var obj = Bones[index];
                         if (obj is null) continue;
+
                         Skinned.bones[index] = obj.ForceGetGameObject().transform;
                     }
                 }

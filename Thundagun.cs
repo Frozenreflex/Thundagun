@@ -199,6 +199,7 @@ public static class FrooxEngineRunnerPatch
         shutdown = ____shutdownRequest;
         if (!__instance.IsInitialized || ____frooxEngine == null)
             return false;
+
         if (____shutdownRequest)
         {
             __instance.Shutdown(ref ____frooxEngine);
@@ -333,6 +334,7 @@ public static class FrooxEngineRunnerPatch
     private static void PatchHeadOutput(HeadOutput output)
     {
         if (output == null) return;
+
         var cameraSettings = new CameraSettings
         {
             IsPrimary = true,
@@ -360,6 +362,7 @@ public static class FrooxEngineRunnerPatch
         AudioListener listener, ref List<World> worlds)
     {
         if (focusedWorld == null) return;
+
         var num = engine.InputInterface.VR_Active ? 1 : 0;
         var headOutput1 = num != 0 ? VR : screen;
         var headOutput2 = num != 0 ? screen : VR;
@@ -386,6 +389,7 @@ public static class FrooxEngineRunnerPatch
         foreach (var world in worlds)
         {
             if (world.Focus != World.WorldFocus.Overlay && world.Focus != World.WorldFocus.PrivateOverlay) continue;
+
             var transform2 = ((WorldConnector)world.Connector).WorldRoot.transform;
             var userGlobalPosition = world.LocalUserGlobalPosition;
             var userGlobalRotation = world.LocalUserGlobalRotation;
@@ -427,6 +431,7 @@ public static class FrooxEngineRunnerPatch
         }
         catch
         {
+            // ignored
         }
 
         Application.Quit();
@@ -447,6 +452,7 @@ public static class AssetInitializerPatch
         {
             if (!t.IsClass || t.IsAbstract || !typeof(Asset).IsAssignableFrom(t))
                 return false;
+
             return t.InheritsFromGeneric(typeof(ImplementableAsset<,>)) ||
                    t.InheritsFromGeneric(typeof(DynamicImplementableAsset<>));
         }).ToList();
@@ -456,6 +462,7 @@ public static class AssetInitializerPatch
             var connectorType = t.GetProperty("Connector",
                 BindingFlags.FlattenHierarchy | BindingFlags.Instance | BindingFlags.Public)?.PropertyType;
             if (connectorType is null) continue;
+
             var list = ourTypes.Where(i => connectorType.IsAssignableFrom(i)).ToList();
             if (list.Count == 1) Connectors.Add(t, list[0]);
         }
@@ -466,6 +473,7 @@ public static class AssetInitializerPatch
     public static bool GetConnectorType(Asset asset, ref Type __result)
     {
         if (!Connectors.TryGetValue(asset.GetType(), out var t)) return true;
+
         __result = t;
         return false;
     }
@@ -542,6 +550,7 @@ public static class AsyncLogger
     {
         if (asyncLoggerTask is not null)
             return;
+
         asyncLoggerTask = Task.Run(() =>
         {
             while (true)

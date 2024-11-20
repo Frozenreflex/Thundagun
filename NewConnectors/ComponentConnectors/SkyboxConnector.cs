@@ -25,12 +25,14 @@ public class ApplyChangesSkyboxConnector : UpdatePacket<SkyboxConnector>
     {
         Active = owner.Owner.ActiveSkybox && owner.World.Focus == World.WorldFocus.Focused;
         if (!Active) return;
+
         Material = owner.Owner.Material?.Asset?.Connector as MaterialConnector;
     }
 
     public override void Update()
     {
         if (!Active) return;
+
         var mat = Material?.UnityMaterial ?? MaterialConnector.NullMaterial;
         var old = UnityEngine.RenderSettings.skybox;
         UnityEngine.RenderSettings.skybox = mat;

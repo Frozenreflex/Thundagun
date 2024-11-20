@@ -22,6 +22,7 @@ public class AudioOutputBehavior : MonoBehaviour
     {
         if (!_playing || _unityAudio.isPlaying)
             return;
+
         _unityAudio?.Play();
     }
 
@@ -35,6 +36,7 @@ public class AudioOutputBehavior : MonoBehaviour
         var engine = _engine;
         if (engine == null)
             return;
+
         var audioSource = _audioSource;
         AudioSystemConnector.InformOfDSPTime(AudioSettings.dspTime);
         if (!_playing)
@@ -47,6 +49,7 @@ public class AudioOutputBehavior : MonoBehaviour
             if (channels != 1)
             {
                 if (channels != 2) throw new Exception("Unsupported channel configuration: " + channels);
+
                 Read(audioSource, data.AsStereoBuffer());
             }
             else

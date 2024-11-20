@@ -25,6 +25,7 @@ public class RenderMaterialOverrideConnector : RenderContextOverride<RenderMater
     {
         var renderer = mesh?.Renderer;
         if (renderer == null) return;
+
         var sharedMaterials = renderer.sharedMaterials;
         foreach (var @override in overrides)
             if (@override.index >= 0 && @override.index < sharedMaterials.Length)
@@ -40,6 +41,7 @@ public class RenderMaterialOverrideConnector : RenderContextOverride<RenderMater
     {
         var renderer = mesh?.Renderer;
         if (renderer == null) return;
+
         var sharedMaterials = renderer.sharedMaterials;
         foreach (var @override in overrides)
             if (@override.index >= 0 && @override.index < sharedMaterials.Length)

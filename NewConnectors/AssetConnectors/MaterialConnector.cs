@@ -102,6 +102,7 @@ public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
                 var propertyIndex2 = (MaterialTag)action.propertyIndex;
                 if (propertyIndex2 != MaterialTag.RenderType)
                     throw new ArgumentException("Unknown material tag: " + propertyIndex2);
+
                 UnityMaterial.SetOverrideTag("RenderType", action.obj as string);
                 break;
             }
@@ -143,6 +144,7 @@ public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
     private void CleanupMaterial()
     {
         if (UnityMaterial == null) return;
+
         if ((bool)UnityMaterial) Object.DestroyImmediate(UnityMaterial, true);
         UnityMaterial = null;
     }

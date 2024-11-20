@@ -151,6 +151,7 @@ public class UMPVideoTextureBehaviour : MonoBehaviour, IVideoTextureBehaviour
     private void Update()
     {
         if (!_initialized) return;
+
         var flag = float.IsPositiveInfinity(Length);
         if (connector.world.Focus == World.WorldFocus.Background)
         {
@@ -286,6 +287,7 @@ public class UMPVideoTextureBehaviour : MonoBehaviour, IVideoTextureBehaviour
             {
                 var videoTextureConnector = connector;
                 if (videoTextureConnector == null) return null;
+
                 texture = videoTextureConnector.Engine.AssetManager.DarkCheckerTexture.GetUnity();
             }
 
@@ -331,6 +333,7 @@ public class UMPVideoTextureBehaviour : MonoBehaviour, IVideoTextureBehaviour
         lastAudioTrack = null;
         defaultAudioTrack = null;
         if (mediaPlayer == null) throw new InvalidOperationException("MediaPlayer is null! Cannot Setup playback");
+
         mediaPlayer.DataSource = dataSource;
         mediaPlayer.Mute = true;
         mediaPlayer.Play();
@@ -351,11 +354,13 @@ public class UMPVideoTextureBehaviour : MonoBehaviour, IVideoTextureBehaviour
     private void OnAudioFilterUpdate()
     {
         if (!_initialized) return;
+
         var lockTaken = false;
         try
         {
             _audioLock.Enter(ref lockTaken);
             if (standalonePlayer == null) return;
+
             if (_audioData == null) _audioData = new float[connector.Engine.AudioSystem.BufferSize * 2];
             if (standalonePlayer.OnAudioFilterRead(_audioData, AudioOutput.AudioChannels.Both))
             {
@@ -390,6 +395,7 @@ public class UMPVideoTextureBehaviour : MonoBehaviour, IVideoTextureBehaviour
     private IEnumerator DelayFail()
     {
         yield return new WaitForSecondsRealtime(5f);
+
         SendOnLoaded();
     }
 

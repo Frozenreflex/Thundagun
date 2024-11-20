@@ -42,6 +42,7 @@ public class MeshConnector : AssetConnector, IMeshConnector
     {
         if (data == null)
             return;
+
         if (Mesh != null && !Mesh.isReadable)
         {
             if (Mesh)
@@ -78,6 +79,7 @@ public class MeshConnector : AssetConnector, IMeshConnector
     {
         if (_meshGenData == null)
             return;
+
         if (Mesh != null && !Mesh.isReadable)
         {
             if (Mesh)

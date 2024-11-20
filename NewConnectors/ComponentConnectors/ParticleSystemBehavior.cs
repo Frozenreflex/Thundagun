@@ -48,6 +48,7 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
     {
         //TODO
         if (ParticleStyle == null) return;
+
         var particleStyle = ParticleStyle;
         var emitParams = default(ParticleSystem.EmitParams);
         emitParams.applyShapeToPosition = false;
@@ -59,7 +60,9 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
         foreach (var emitter in FrooxEngineParticleSystem.Emitters)
         {
             if (num == 0) break;
+
             if (emitter.CurrentCount <= 0) continue;
+
             var generatesColors = emitter.GeneratesColors;
             var num2 = MathX.Min(emitter.CurrentCount, num);
             _emissions = _emissions.EnsureSize(num2);
@@ -67,6 +70,7 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
             var num3 = emitter.GenerateParticles(FrooxEngineParticleSystem.SimulationSpace.Space, num2, _emissions,
                 generatesColors ? _colors : null);
             if (num3 == 0) continue;
+
             if (world.Focus is World.WorldFocus.PrivateOverlay or World.WorldFocus.Overlay)
             {
                 var focusedWorld = world.Engine.WorldManager.FocusedWorld;
@@ -156,6 +160,7 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
         lastDeltaTime = Time.deltaTime;
         var particles = pSystem.GetParticles(_particles);
         if (particles == 0) return;
+
         for (var i = 0; i < particles; i += 100)
         {
             var job = new ParticleJob(this, i, Math.Min(particles, i + 100));

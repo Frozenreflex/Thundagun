@@ -70,6 +70,7 @@ public class SlotConnector : Connector<Slot>, ISlotConnector
     {
         if (!ShouldDestroy || GameObjectRequests != 0)
             return;
+
         if (!destroyingWorld)
         {
             if (GeneratedGameObject) Object.Destroy(GeneratedGameObject);
@@ -101,6 +102,7 @@ public class SlotConnector : Connector<Slot>, ISlotConnector
         var layer = ForceLayer <= 0 ? Transform.parent.gameObject.layer : ForceLayer;
         if (layer == GeneratedGameObject.layer)
             return;
+
         SetHiearchyLayer(GeneratedGameObject, layer);
     }
 

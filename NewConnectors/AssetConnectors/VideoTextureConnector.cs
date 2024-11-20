@@ -104,6 +104,7 @@ public class VideoTextureConnector : AssetConnector, IVideoTextureConnector, IUn
         while (world.Time.LocalUpdateIndex < 200) yield return new WaitForEndOfFrame();
         while (world.Engine.SystemInfo.FPS < 10f || (DateTime.UtcNow - _lastStreamLoad).TotalSeconds < 4.0)
             yield return new WaitForEndOfFrame();
+
         _lastStreamLoad = DateTime.UtcNow;
         UnityAssetIntegrator.EnqueueTask(delegate { ParseUrl(uri, onReady); });
     }
@@ -194,6 +195,7 @@ public class VideoTextureConnector : AssetConnector, IVideoTextureConnector, IUn
     private PlaybackState GetPlayback()
     {
         if (getPlayback == null) return new PlaybackState(false, false, 0.0, 0f);
+
         return getPlayback();
     }
 }

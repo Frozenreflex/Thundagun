@@ -60,6 +60,7 @@ public class CameraRenderEx : MonoBehaviour
             if (_prevContext.HasValue)
                 RenderHelper.BeginRenderContext(_prevContext.Value);
             if (!DoubleBuffer || Camera.targetTexture == null) return;
+
             if (_prevRect.HasValue)
             {
                 var texture = Camera.targetTexture;
@@ -135,6 +136,7 @@ public class CameraRenderEx : MonoBehaviour
             if (Texture != null)
                 Camera.targetTexture = Texture;
             if (!DoubleBuffer || Camera.targetTexture == null) return;
+
             var descriptor = Camera.targetTexture.descriptor;
             if (Camera.rect != new Rect(0.0f, 0.0f, 1f, 1f))
             {

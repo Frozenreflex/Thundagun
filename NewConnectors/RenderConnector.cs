@@ -185,6 +185,7 @@ public class InitializeRenderConnector : UpdatePacket<RenderConnector>
     {
         if (RenderConnector._initialized)
             return;
+
         RenderConnector._initialized = true;
         var gameObject1 = new GameObject("CaptureCam");
         var gameObject2 = new GameObject("CaptureCam360");

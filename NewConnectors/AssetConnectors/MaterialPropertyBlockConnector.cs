@@ -88,6 +88,7 @@ public class MaterialPropertyBlockConnector : MaterialConnectorBase, IMaterialPr
     private void Destroy()
     {
         if (_unityBlock == null) return;
+
         _unityBlock.Clear();
         Pool<MaterialPropertyBlock>.ReturnCleaned(ref _unityBlock);
     }

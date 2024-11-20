@@ -102,12 +102,14 @@ public class UnityAssetIntegrator : IAssetManagerConnector
     public void EnqueueRenderThreadProcessing(IEnumerator coroutine)
     {
         if (!RenderThreadProcessingEnabled) throw new NotSupportedException("Render Thread Processing is not enabled");
+
         renderThreadQueue.Enqueue(new QueueAction(coroutine));
     }
 
     public void EnqueueRenderThreadProcessing(Action action)
     {
         if (!RenderThreadProcessingEnabled) throw new NotSupportedException("Render Thread Processing is not enabled");
+
         renderThreadQueue.Enqueue(new QueueAction(action));
     }
 

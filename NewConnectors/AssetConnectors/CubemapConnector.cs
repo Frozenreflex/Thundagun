@@ -76,6 +76,7 @@ public class CubemapConnector : AssetConnector, IUnityTextureProvider
         cubemapConnector.Destroy();
         cubemapConnector.UnityCubemap = new Cubemap(data.Size.x, unity, data.HasMipMaps);
         yield return null;
+
         var dataIndex = 0;
         for (var mip = 0; mip < data.MipMapLevels; ++mip)
         for (var f = 0; f < 6; ++f)

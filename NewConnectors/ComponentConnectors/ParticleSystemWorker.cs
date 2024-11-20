@@ -41,6 +41,7 @@ public class ParticleSystemWorker : MonoBehaviour
         JobsCountDebug = jobs.Count;
         if (jobs.Count == 0)
             return;
+
         var count = jobs.Count;
         processedJobs = 0;
         /*
@@ -102,6 +103,7 @@ public class ParticleSystemWorker : MonoBehaviour
                     var magnitude = particle.velocity.magnitude;
                     if (magnitude <= 1E-10f)
                         continue;
+
                     var a = particle.position.ToEngine();
                     var v = particle.velocity.ToEngine();
                     var num = magnitude * lastDeltaTime;
@@ -111,6 +113,7 @@ public class ParticleSystemWorker : MonoBehaviour
                     var origin = a - b;
                     var raycastHit = physicsManager.RaycastOne(in origin, in direction, num * 1.5f);
                     if (!raycastHit.HasValue) continue;
+
                     var value5 = raycastHit.Value;
                     var val2 = num - value5.Distance;
                     var normalized = Vector3.Reflect(particle.velocity, value5.Normal.ToUnity()).normalized;

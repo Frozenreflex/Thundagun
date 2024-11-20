@@ -109,8 +109,10 @@ public class ApplyChangesAudioOutputConnector : UpdatePacket<AudioOutputConnecto
             if (unityAudio.maxDistance != maxDistance) unityAudio.maxDistance = maxDistance;
             if (unityAudio.rolloffMode != RolloffMode) unityAudio.rolloffMode = RolloffMode;
             if (Owner._outputBehavior._playing) return;
+
             Owner._outputBehavior._playing = true;
             if (!unityAudio.enabled || !unityAudio.gameObject.activeInHierarchy) return;
+
             unityAudio.Play();
         }
     }

@@ -15,6 +15,7 @@ public static class CameraInitializer
         c.cullingMask = ~LayerMask.GetMask("Hidden", "Overlay");
         if (!settings.SetupPostProcessing)
             return;
+
         SetupPostProcessing(c, settings);
     }
 
@@ -38,6 +39,7 @@ public static class CameraInitializer
     {
         var component = c.GetComponent<CameraPostprocessingManager>();
         if (component == null) return;
+
         component.RemovePostProcessing();
         Object.Destroy(component);
     }

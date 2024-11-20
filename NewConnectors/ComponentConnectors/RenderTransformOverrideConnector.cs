@@ -53,6 +53,7 @@ public class RenderTransformOverrideConnector : RenderContextOverride<RenderTran
             foreach (var skinnedMeshRenderer in _renderers)
             {
                 if (skinnedMeshRenderer == null) continue;
+
                 if (skinnedMeshRenderer.Connector is SkinnedMeshRendererConnector skinnedMeshRendererConnector)
                 {
                     if (!hashSet.Remove(skinnedMeshRendererConnector))

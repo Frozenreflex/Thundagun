@@ -105,6 +105,7 @@ public class DesktopUpdatePacket : UpdatePacket<DuplicableDisplay>
 
         Display.UpdateProperties(Monitor);
         if (!flag || ((int)currentState != 0 && (int)currentState != (int)State2.UsingWindowCapture)) return;
+
         foreach (var request in _requests)
             //Thundagun.Msg("request invoke");
             request();
@@ -144,6 +145,7 @@ public class DesktopTextureConnector :
         var screen = Engine.InputInterface.TryGetDisplay(index) as IDisplayTextureSource;
         if (screen == _lastSource)
             return;
+
         FreeSource();
         _onUpdated = onUpdated;
         if (screen != null)
@@ -171,6 +173,7 @@ public class DesktopTextureConnector :
         _onUpdated = null;
         if (source == null)
             return;
+
         UnityAssetIntegrator.EnqueueProcessing(() => source.UnregisterRequest(TextureUpdated), true);
     }
 

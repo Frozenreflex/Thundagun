@@ -25,6 +25,7 @@ public class SkinBoundsUpdater : MonoBehaviour
         {
             if (connector == null)
                 return;
+
             connector.LocalBoundingBoxAvailable = false;
         }
         else
@@ -70,6 +71,7 @@ public class SkinBoundsUpdater : MonoBehaviour
                         var bounds2 = boneMetadata[index1].bounds;
                         var bone = connector.MeshRenderer.bones[index1];
                         if (!bounds2.IsValid || bone == null) continue;
+
                         for (var index2 = 0; index2 < 8; index2++)
                         {
                             var vertexPoint = bounds2.GetVertexPoint(index2);
@@ -88,6 +90,7 @@ public class SkinBoundsUpdater : MonoBehaviour
                 {
                     if (boundsMethod != SkinnedBounds.SlowRealtimeAccurate)
                         return;
+
                     var engine = connector.MeshRenderer.bounds.ToEngine();
                     var boundingBox = BoundingBox.Empty();
                     for (var index = 0; index < 8; index++)
