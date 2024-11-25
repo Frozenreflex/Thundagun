@@ -30,6 +30,7 @@ public class Thundagun : ResoniteMod
     public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK";
     public override string Version => VersionString; // change minor version for config "API" changes
     public const string VersionString = "1.1.1";
+    public override string Link => "https://github.com/Frozenreflex/Thundagun";
     
     public static readonly Queue<IUpdatePacket> CurrentPackets = new();
 
