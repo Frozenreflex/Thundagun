@@ -330,7 +330,6 @@ public static class FrooxEngineRunnerPatch
 						Queue<IUpdatePacket> incomplete = new();
 						if (Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
 						{
-
 							lock (Thundagun.CurrentBatch)
 							{
 								while (Thundagun.CurrentBatch.Count > 0)
@@ -341,9 +340,9 @@ public static class FrooxEngineRunnerPatch
 							}
 						}
 
-						if (incomplete.Count > 0)
+						if (update != null)
 						{
-							foreach (var packet in incomplete)
+							foreach (var packet in update)
 							{
 								try
 								{
@@ -356,9 +355,9 @@ public static class FrooxEngineRunnerPatch
 							}
 						}
 
-						if (update != null)
+						if (incomplete.Count > 0)
 						{
-							foreach (var packet in update)
+							foreach (var packet in incomplete)
 							{
 								try
 								{

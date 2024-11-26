@@ -26,12 +26,8 @@ public class UIXUpdatePacket : UpdatePacket<FrooxEngine.UIX.Canvas>
 		}
 		owner._removals.Clear();
 		owner.PrepareCanvasUpdate();
-    }
-
-    public override void Update()
-	{
-		Task.Run(async () => 
-		{ 
+		Task.Run(async () =>
+		{
 			await default(ToBackground);
 			try
 			{
@@ -159,5 +155,10 @@ public class UIXUpdatePacket : UpdatePacket<FrooxEngine.UIX.Canvas>
 				Owner._cachedWorld.RunSynchronously(Owner._finishCanvasUpdate, immediatellyIfPossible: false, Owner, evenIfDisposed: true);
 			}
 		});
+	}
+
+    public override void Update()
+	{
+		
 	}
 }
