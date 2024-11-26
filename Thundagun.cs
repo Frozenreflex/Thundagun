@@ -206,7 +206,6 @@ class UIXPatch
 [HarmonyPatch(typeof(FrooxEngineRunner))]
 public static class FrooxEngineRunnerPatch
 {
-
 	public static Queue<int> assets_processed = new();
 
 	public static DateTime lastrender;
