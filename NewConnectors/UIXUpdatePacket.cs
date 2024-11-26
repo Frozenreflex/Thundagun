@@ -13,7 +13,6 @@ using uWindowCapture;
 
 namespace Thundagun;
 
-// FinishCanvasUpdate creates slots, so ideally it runs before unity starts processing the connectors
 public class UIXUpdatePacket : UpdatePacket<FrooxEngine.UIX.Canvas>
 {
     public UIXUpdatePacket(FrooxEngine.UIX.Canvas owner) : base(owner)
@@ -27,8 +26,6 @@ public class UIXUpdatePacket : UpdatePacket<FrooxEngine.UIX.Canvas>
 		}
 		owner._removals.Clear();
 		owner.PrepareCanvasUpdate();
-		//StartTask(_computeCanvasUpdate);
-		//Owner._computeCanvasUpdate();
     }
 
     public override void Update()
@@ -160,30 +157,7 @@ public class UIXUpdatePacket : UpdatePacket<FrooxEngine.UIX.Canvas>
 			finally
 			{
 				Owner._cachedWorld.RunSynchronously(Owner._finishCanvasUpdate, immediatellyIfPossible: false, Owner, evenIfDisposed: true);
-				//Owner._finishCanvasUpdate();
-				//Task.Run(Owner._finishCanvasUpdate);
-				//Thundagun.QueuePacket(new UIXUpdatePacketFinish(Owner));
-				//Owner._cachedWorld.RunSynchronously(Owner._finishCanvasUpdate);
-				//Owner.World.Coroutines.StartTask(() => Task.Run(Owner._finishCanvasUpdate));
-				//Owner.World.run
-				//Owner._finishCanvasUpdate();
-				//Owner.StartTask(Owner._finishCanvasUpdate);
-				//Owner._finishCanvasUpdate();
 			}
 		});
-		//Owner.World.RunInUpdates(1, Owner._finishCanvasUpdate);
 	}
 }
-
-//public class UIXUpdatePacketFinish : UpdatePacket<FrooxEngine.UIX.Canvas>
-//{
-//    public UIXUpdatePacketFinish(FrooxEngine.UIX.Canvas owner) : base(owner)
-//    {
-
-//    }
-
-//    public override void Update()
-//	{
-		
-//	}
-//}
