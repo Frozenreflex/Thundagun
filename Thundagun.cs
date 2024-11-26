@@ -27,7 +27,7 @@ public class Thundagun : ResoniteMod
 {
     public override string Name => "Thundagun";
     public override string Author => AuthorString; // in order of first commit
-    public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK";
+    public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK, SectOLT";
     public override string Version => VersionString; // change minor version for config "API" changes
     public const string VersionString = "1.1.1";
     public override string Link => "https://github.com/Frozenreflex/Thundagun";
