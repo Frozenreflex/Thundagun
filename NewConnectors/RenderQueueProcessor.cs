@@ -60,6 +60,8 @@ public class RenderQueueProcessor : MonoBehaviour
     {
         lock (Tasks)
         {
+            if (Tasks.Count == 0) return;
+            
             var renderingContext = RenderHelper.CurrentRenderingContext;
             RenderHelper.BeginRenderContext(RenderingContext.RenderToAsset);
 

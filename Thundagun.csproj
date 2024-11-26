@@ -10,6 +10,7 @@
     <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/</ResonitePath>
     <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/</ResonitePath>
     <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +25,8 @@
     <PackageReference Include="Serilog" Version="4.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="System.Memory" Version="4.6.0" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0" />
   </ItemGroup>
   
   <ItemGroup>
@@ -112,37 +115,36 @@
 	<Publicize Include="Assembly-CSharp:DuplicableDisplay.currentState" />
 	<Publicize Include="Assembly-CSharp:DuplicableDisplay._requests" />
 	<Publicize Include="Assembly-CSharp:DuplicableDisplay.UpdateProperties" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._pruneDisabledTransforms" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._computeDirtyTransforms" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.ShouldPrune" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._changedChildrenTransforms" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ProcessChangedChildren" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._autoInvalidateRects" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.MarkComputeRectChangedAndPropagate" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ProcessChanges" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.HasGraphicsChunk" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._graphicChunksDirty" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._graphicChunks" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.GraphicsChunk" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._removedGraphicChunks" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RequiresPreLayoutCompute" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RunPreLayoutCompute" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._root" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._size" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ComputeRect" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RequiresPreGraphicsCompute" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RunPreGraphicsCompute" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.EnsureSortedGraphicsChunks" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._debugChunk" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.UpdateBoundsAndClear" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._finishCanvasUpdate" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.UpdateCycleIndex" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.UpdateCycleStart" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._cachedWorld" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._removals" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.PrepareCanvasUpdate" />
-	<Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._computeCanvasUpdate" />
-	
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._pruneDisabledTransforms" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._computeDirtyTransforms" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.ShouldPrune" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._changedChildrenTransforms" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ProcessChangedChildren" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._autoInvalidateRects" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.MarkComputeRectChangedAndPropagate" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ProcessChanges" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.HasGraphicsChunk" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._graphicChunksDirty" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._graphicChunks" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.GraphicsChunk" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._removedGraphicChunks" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RequiresPreLayoutCompute" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RunPreLayoutCompute" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._root" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._size" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ComputeRect" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RequiresPreGraphicsCompute" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RunPreGraphicsCompute" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.EnsureSortedGraphicsChunks" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._debugChunk" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.UpdateBoundsAndClear" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._finishCanvasUpdate" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.UpdateCycleIndex" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.UpdateCycleStart" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._cachedWorld" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._removals" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.PrepareCanvasUpdate" />
+    <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._computeCanvasUpdate" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

@@ -98,11 +98,12 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
         RenderingPath = owner.Owner.ForwardOnly.Value ? RenderingPath.Forward : RenderingPath.UsePlayerSettings;
         RenderShadows = owner.Owner.RenderShadows.Value;
 
+        PostprocessingSetup = owner.Owner.Postprocessing;
+
         if (owner.Owner.Postprocessing != owner.PostprocessingSetup ||
             owner.Owner.ScreenSpaceReflections != owner.ScreenspaceReflections ||
             owner.Owner.MotionBlur != owner.MotionBlur)
         {
-            PostprocessingSetup = owner.Owner.Postprocessing;
             ScreenspaceReflections = owner.Owner.ScreenSpaceReflections;
             MotionBlur = owner.Owner.MotionBlur;
             if (owner.Owner.Postprocessing) SetupPostProcessing = true;
@@ -112,8 +113,8 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
         Texture = owner.Owner.RenderTexture?.Asset?.Connector as RenderTextureConnector;
         DoubleBuffer = owner.Owner.DoubleBuffered.Value;
 
-        SelectiveRender = owner.Owner.SelectiveRender.Select(i => i.Connector as SlotConnector).Where(i => i is not null).ToList();
-        ExcludeRender = owner.Owner.ExcludeRender.Select(i => i.Connector as SlotConnector).Where(i => i is not null).ToList();
+        SelectiveRender = owner.Owner.SelectiveRender.Select(i => i?.Connector as SlotConnector).Where(i => i is not null).ToList();
+        ExcludeRender = owner.Owner.ExcludeRender.Select(i => i?.Connector as SlotConnector).Where(i => i is not null).ToList();
 
         CullingMask = owner.Owner.RenderPrivateUI ? CameraConnector.PrivateLayerMask : CameraConnector.LayerMask;
         Active = owner.Owner.Enabled && owner.Owner.Slot.IsActive;
@@ -145,18 +146,17 @@ public class ApplyChangesCameraConnector : UpdatePacket<CameraConnector>
             CameraSettings settings = new CameraSettings();
             settings.MotionBlur = Owner.MotionBlur;
             settings.ScreenSpaceReflection = Owner.ScreenspaceReflections;
-            settings.IsVR = false;
+            settings.SetupPostProcessing = true;
             if (SetupPostProcessing) CameraInitializer.SetupPostProcessing(Owner.UnityCamera, settings);
             else CameraInitializer.RemovePostProcessing(Owner.UnityCamera);
         }
-
 
         Owner.RenderEx.Texture = Texture?.RenderTexture;
         Owner.RenderEx.DoubleBuffer = DoubleBuffer && !PostprocessingSetup;
         Owner.RenderEx.SelectiveRender.Clear();
         Owner.RenderEx.ExcludeRender.Clear();
-        Owner.RenderEx.SelectiveRender.AddRange(SelectiveRender.Select(i => i.GeneratedGameObject).Where(i => i is not null));
-        Owner.RenderEx.ExcludeRender.AddRange(ExcludeRender.Select(i => i.GeneratedGameObject).Where(i => i is not null));
+        Owner.RenderEx.SelectiveRender.AddRange(SelectiveRender.Select(i => i?.ForceGetGameObject()).Where(i => i is not null));
+        Owner.RenderEx.ExcludeRender.AddRange(ExcludeRender.Select(i => i?.ForceGetGameObject()).Where(i => i is not null));
 
         Owner.UnityCamera.cullingMask = Owner.RenderEx.SelectiveRender.Count <= 0
             ? CullingMask
