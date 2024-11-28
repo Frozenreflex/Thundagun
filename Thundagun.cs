@@ -208,13 +208,6 @@ public static class FrooxEngineRunnerPatch
                 
                 PatchHeadOutput(____vrOutput);
                 PatchHeadOutput(____screenOutput);
-                
-                var toRemove = __instance.gameObject.scene.GetRootGameObjects().SelectMany(i => i.GetComponentsInChildren<CameraPostprocessingManager>());
-                foreach (var remove in toRemove)
-                {
-                    Thundagun.Msg("deleting a stray post-processing manager");
-                    Object.Destroy(remove);
-                }
             }
             
             try
@@ -329,8 +322,6 @@ public static class FrooxEngineRunnerPatch
         };
         foreach (var camera in output.cameras)
         {
-            var toRemove = camera.gameObject.GetComponents<CameraPostprocessingManager>();
-            foreach (var r in toRemove) Object.Destroy(r);
             PostProcessingInterface.SetupCamera(camera, cameraSettings);
         }
     }
