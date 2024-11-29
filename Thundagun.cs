@@ -30,12 +30,8 @@ namespace Thundagun;
 
 public class Thundagun : ResoniteMod
 {
-    public override string Name => "Thundagun";
-    public override string Author => AuthorString; // in order of first commit
     public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK, SectOLT";
-    public override string Version => VersionString; // change minor version for config "API" changes
     public const string VersionString = "1.1.1";
-    public override string Link => "https://github.com/Frozenreflex/Thundagun";
 
     public static Queue<IUpdatePacket> CurrentBatch = new();
 
@@ -44,14 +40,6 @@ public class Thundagun : ResoniteMod
     public static Task FrooxEngineTask;
 
     public static UnityCompletionStatus unityCompletionStatus = new();
-
-    public static void QueuePacket(IUpdatePacket packet)
-    {
-        lock (CurrentBatch)
-        {
-            CurrentBatch.Enqueue(packet);
-        }
-    }
 
     internal static ModConfiguration Config;
 
@@ -83,6 +71,19 @@ public class Thundagun : ResoniteMod
             "Emulate Vanilla: Emulate the rendering behavior of the vanilla game. Effectively disables the mod. Good for desktop mode.",
             () => false,
             false, value => true);
+
+    public override string Name => "Thundagun";
+    public override string Author => AuthorString; // in order of first commit
+    public override string Version => VersionString; // change minor version for config "API" changes
+    public override string Link => "https://github.com/Frozenreflex/Thundagun";
+
+    public static void QueuePacket(IUpdatePacket packet)
+    {
+        lock (CurrentBatch)
+        {
+            CurrentBatch.Enqueue(packet);
+        }
+    }
 
     public override void OnEngineInit()
     {
@@ -583,12 +584,13 @@ public static class WorkerInitializerPatch
 public abstract class UpdatePacket<T> : IUpdatePacket
 {
     public T Owner;
-    public abstract void Update();
 
     public UpdatePacket(T owner)
     {
         Owner = owner;
     }
+
+    public abstract void Update();
 }
 
 public interface IUpdatePacket
@@ -633,7 +635,8 @@ public static class AsyncLogger
                     EarlyLogger.Log(
                         $"Unity current: {now - SynchronizationManager.UnityStartTime} Resonite current: {now - SynchronizationManager.ResoniteStartTime} UnityLastUpdateInterval: {SynchronizationManager.UnityLastUpdateInterval} ResoniteLastUpdateInterval: {SynchronizationManager.ResoniteLastUpdateInterval}");
 
-                Thread.Sleep((int)(1000.0 / Thundagun.Config.GetValue(Thundagun.LoggingRate)));
+
+                SynchronizationManager.SpinWait(TimeSpan.FromSeconds(1.0 / Thundagun.Config.GetValue(Thundagun.LoggingRate)));
             }
         });
     }
@@ -645,6 +648,17 @@ public static class SynchronizationManager
     public static DateTime ResoniteStartTime { get; internal set; } = DateTime.Now;
     public static TimeSpan UnityLastUpdateInterval { get; internal set; } = TimeSpan.Zero;
     public static TimeSpan ResoniteLastUpdateInterval { get; internal set; } = TimeSpan.Zero;
+
+    public static void SpinWait(TimeSpan duration)
+    {
+        var spin = new SpinWait();
+        var stopwatch = Stopwatch.StartNew();
+
+        while (stopwatch.Elapsed < duration)
+        {
+            spin.SpinOnce();
+        }
+    }
 
     public static void OnUnityUpdate()
     {
@@ -665,13 +679,13 @@ public static class SynchronizationManager
             // sleep unity while frooxengine has not submitted any updates
             while (!status && Engine.Current.IsReady)
             {
-                Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
+                SpinWait(TimeSpan.FromMilliseconds(0.1));
                 status = Thundagun.CompletedUpdates.Count > 0;
             }
         }
 
         var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate));
-        if (DateTime.Now - UnityStartTime < ticktime) Thread.Sleep(ticktime - UnityLastUpdateInterval);
+        if (DateTime.Now - UnityStartTime < ticktime) SpinWait(ticktime - UnityLastUpdateInterval);
 
         UnityStartTime = DateTime.Now;
     }
@@ -691,7 +705,7 @@ public static class SynchronizationManager
             //sleep FrooxEngine while Unity is processing update packets
             while (!status)
             {
-                Thread.Sleep(TimeSpan.FromMilliseconds(0.1));
+                SpinWait(TimeSpan.FromMilliseconds(0.1));
                 lock (Thundagun.unityCompletionStatus)
                 {
                     status = Thundagun.unityCompletionStatus.Completed;
@@ -700,7 +714,7 @@ public static class SynchronizationManager
         }
 
         var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
-        if (DateTime.Now - ResoniteStartTime < ticktime) Thread.Sleep(ticktime - ResoniteLastUpdateInterval);
+        if (DateTime.Now - ResoniteStartTime < ticktime) SpinWait(ticktime - ResoniteLastUpdateInterval);
 
         ResoniteStartTime = DateTime.Now;
     }
