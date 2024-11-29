@@ -1,3 +1,5 @@
+#region
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,18 +8,13 @@ using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
 
+#endregion
+
 namespace Thundagun.NewConnectors;
 
 public class RenderQueueProcessor : MonoBehaviour
 {
-    private static RenderQueueProcessor _instance;
-    public static RenderQueueProcessor Instance
-    {
-        get { return _instance; }
-        private set { _instance = value; }
-    }
-
-    private Queue<RenderTask> Tasks = new Queue<RenderTask>();
+    private readonly Queue<RenderTask> Tasks = new();
     public RenderConnector Connector;
 
     public RenderQueueProcessor()
@@ -25,43 +22,14 @@ public class RenderQueueProcessor : MonoBehaviour
         Instance = this;
     }
 
-    public Task<byte[]> Enqueue(FrooxEngine.RenderSettings settings)
-    {
-        var task = new TaskCompletionSource<byte[]>();
-        var renderTask = new RenderTask(new RenderSettings { 
-            position = settings.position,
-            rotation = settings.rotation,
-            size = settings.size,
-            textureFormat = settings.textureFormat,
-            projection = settings.projection,
-            fov = settings.fov,
-            ortographicSize = settings.ortographicSize,
-            clear = settings.clear,
-            clearColor = settings.clearColor,
-            near = settings.near,
-            far = settings.far,
-            renderObjects = settings.renderObjects?.Select(s => ((SlotConnector)s.Connector)?.GeneratedGameObject).ToList(),
-            excludeObjects = settings.excludeObjects?.Select(s => ((SlotConnector)s.Connector)?.GeneratedGameObject).ToList(),
-            renderPrivateUI = settings.renderPrivateUI,
-            postProcesing = settings.postProcesing,
-            screenspaceReflections = settings.screenspaceReflections,
-            customPostProcess = settings.customPostProcess,
-            }, task);
-
-        lock (Tasks)
-        {
-            Tasks.Enqueue(renderTask);
-        }
-
-        return task.Task;
-    }
+    public static RenderQueueProcessor Instance { get; private set; }
 
     private void LateUpdate()
     {
         lock (Tasks)
         {
             if (Tasks.Count == 0) return;
-            
+
             var renderingContext = RenderHelper.CurrentRenderingContext;
             RenderHelper.BeginRenderContext(RenderingContext.RenderToAsset);
 
@@ -78,10 +46,41 @@ public class RenderQueueProcessor : MonoBehaviour
                 }
             }
 
-            if (renderingContext.HasValue)
-            {
-                RenderHelper.BeginRenderContext(renderingContext.Value);
-            }
+            if (renderingContext.HasValue) RenderHelper.BeginRenderContext(renderingContext.Value);
         }
+    }
+
+    public Task<byte[]> Enqueue(FrooxEngine.RenderSettings settings)
+    {
+        var task = new TaskCompletionSource<byte[]>();
+        var renderTask = new RenderTask(new RenderSettings
+        {
+            position = settings.position,
+            rotation = settings.rotation,
+            size = settings.size,
+            textureFormat = settings.textureFormat,
+            projection = settings.projection,
+            fov = settings.fov,
+            ortographicSize = settings.ortographicSize,
+            clear = settings.clear,
+            clearColor = settings.clearColor,
+            near = settings.near,
+            far = settings.far,
+            renderObjects = settings.renderObjects?.Select(s => ((SlotConnector)s.Connector)?.GeneratedGameObject)
+                .ToList(),
+            excludeObjects = settings.excludeObjects?.Select(s => ((SlotConnector)s.Connector)?.GeneratedGameObject)
+                .ToList(),
+            renderPrivateUI = settings.renderPrivateUI,
+            postProcesing = settings.postProcesing,
+            screenspaceReflections = settings.screenspaceReflections,
+            customPostProcess = settings.customPostProcess
+        }, task);
+
+        lock (Tasks)
+        {
+            Tasks.Enqueue(renderTask);
+        }
+
+        return task.Task;
     }
 }

@@ -1,24 +1,28 @@
+#region
+
 using System;
 using System.Collections.Generic;
 using Elements.Core;
 using FrooxEngine;
-using UnityEngine;
 using UnityFrooxEngineRunner;
+using Material = UnityEngine.Material;
+using Object = UnityEngine.Object;
 using Shader = FrooxEngine.Shader;
+
+#endregion
 
 namespace Thundagun.NewConnectors.AssetConnectors;
 
 public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
 {
-    private static Lazy<UnityEngine.Shader> _null = new(() => UnityEngine.Shader.Find("BuiltIn/Null"));
+    private static readonly Lazy<UnityEngine.Shader> _null = new(() => UnityEngine.Shader.Find("BuiltIn/Null"));
 
-    private static Lazy<UnityEngine.Shader> _invisible = new(() => UnityEngine.Shader.Find("BuiltIn/Invisible"));
+    private static readonly Lazy<UnityEngine.Shader> _invisible =
+        new(() => UnityEngine.Shader.Find("BuiltIn/Invisible"));
 
-    private static Lazy<UnityEngine.Material> _nullMaterial = new(() => new UnityEngine.Material(NullShader));
+    private static readonly Lazy<Material> _nullMaterial = new(() => new Material(NullShader));
 
-    private static Lazy<UnityEngine.Material> _invisibleMaterial = new(() => new UnityEngine.Material(InvisibleShader));
-
-    private UnityEngine.Material _unityMaterial;
+    private static readonly Lazy<Material> _invisibleMaterial = new(() => new Material(InvisibleShader));
 
     private Shader targetShader;
 
@@ -26,11 +30,11 @@ public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
 
     public static UnityEngine.Shader InvisibleShader => _invisible.Value;
 
-    public static UnityEngine.Material NullMaterial => _nullMaterial.Value;
+    public static Material NullMaterial => _nullMaterial.Value;
 
-    public static UnityEngine.Material InvisibleMaterial => _invisibleMaterial.Value;
+    public static Material InvisibleMaterial => _invisibleMaterial.Value;
 
-    public UnityEngine.Material UnityMaterial => _unityMaterial;
+    public Material UnityMaterial { get; private set; }
 
     public void ApplyChanges(Shader shader, AssetIntegrated onDone)
     {
@@ -38,12 +42,27 @@ public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
         ApplyChanges(onDone);
     }
 
+    public override void Unload()
+    {
+        UnityAssetIntegrator.EnqueueProcessing(Destroy, false);
+    }
+
+    void ISharedMaterialPropertySetter.SetFloat4(int property, in float4 value)
+    {
+        SetFloat4(property, in value);
+    }
+
+    void ISharedMaterialPropertySetter.SetMatrix(int property, in float4x4 matrix)
+    {
+        SetMatrix(property, in matrix);
+    }
+
     protected override bool BeginUpload(ref bool instanceChanged)
     {
         var shader = (targetShader?.Connector as ShaderConnector)?.UnityShader;
         if (shader == null)
         {
-            if (_unityMaterial != null)
+            if (UnityMaterial != null)
             {
                 instanceChanged = true;
                 CleanupMaterial();
@@ -52,9 +71,9 @@ public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
             return false;
         }
 
-        if (_unityMaterial == null)
+        if (UnityMaterial == null)
         {
-            _unityMaterial = new UnityEngine.Material(shader);
+            UnityMaterial = new Material(shader);
             instanceChanged = true;
         }
         else if (UnityMaterial.shader != shader)
@@ -79,14 +98,13 @@ public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
                 UnityMaterial.renderQueue = (int)action.float4Value.x;
                 break;
             case ActionType.Tag:
-                {
-                    var propertyIndex2 = (MaterialTag)action.propertyIndex;
-                    if (propertyIndex2 != MaterialTag.RenderType)
-                        throw new ArgumentException("Unknown material tag: " + propertyIndex2);
-                    UnityMaterial.SetOverrideTag("RenderType", action.obj as string);
-                    break;
-
-                }
+            {
+                var propertyIndex2 = (MaterialTag)action.propertyIndex;
+                if (propertyIndex2 != MaterialTag.RenderType)
+                    throw new ArgumentException("Unknown material tag: " + propertyIndex2);
+                UnityMaterial.SetOverrideTag("RenderType", action.obj as string);
+                break;
+            }
             case ActionType.Float:
                 UnityMaterial.SetFloat(action.propertyIndex, action.float4Value.x);
                 break;
@@ -97,38 +115,35 @@ public class MaterialConnector : MaterialConnectorBase, IMaterialConnector
                 UnityMaterial.SetFloatArray(action.propertyIndex, (List<float>)action.obj);
                 break;
             case ActionType.Float4Array:
-                {
-                    var list = GetUnityVectorArray(ref action);
-                    UnityMaterial.SetVectorArray(action.propertyIndex, list);
-                    Pool.Return(ref list);
-                    break;
-                }
+            {
+                var list = GetUnityVectorArray(ref action);
+                UnityMaterial.SetVectorArray(action.propertyIndex, list);
+                Pool.Return(ref list);
+                break;
+            }
             case ActionType.Matrix:
-                {
-                    var unityMaterial = UnityMaterial;
-                    var propertyIndex = action.propertyIndex;
-                    var m = GetMatrix(ref action);
-                    unityMaterial.SetMatrix(propertyIndex, m.ToUnity());
-                    break;
-                }
+            {
+                var unityMaterial = UnityMaterial;
+                var propertyIndex = action.propertyIndex;
+                var m = GetMatrix(ref action);
+                unityMaterial.SetMatrix(propertyIndex, m.ToUnity());
+                break;
+            }
             case ActionType.Texture:
                 UnityMaterial.SetTexture(action.propertyIndex, (action.obj as ITexture)?.GetUnity());
                 break;
         }
     }
 
-    public override void Unload() => UnityAssetIntegrator.EnqueueProcessing(Destroy, highPriority: false);
-
-    private void Destroy() => CleanupMaterial();
+    private void Destroy()
+    {
+        CleanupMaterial();
+    }
 
     private void CleanupMaterial()
     {
-        if (_unityMaterial == null) return;
-        if ((bool)_unityMaterial) UnityEngine.Object.DestroyImmediate(_unityMaterial, allowDestroyingAssets: true);
-        _unityMaterial = null;
+        if (UnityMaterial == null) return;
+        if ((bool)UnityMaterial) Object.DestroyImmediate(UnityMaterial, true);
+        UnityMaterial = null;
     }
-
-    void ISharedMaterialPropertySetter.SetFloat4(int property, in float4 value) => SetFloat4(property, in value);
-
-    void ISharedMaterialPropertySetter.SetMatrix(int property, in float4x4 matrix) => SetMatrix(property, in matrix);
 }

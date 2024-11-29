@@ -1,7 +1,11 @@
+#region
+
 using Elements.Core;
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
@@ -9,9 +13,15 @@ public class BlitToDisplayConnector : ComponentConnectorSingle<BlitToDisplay>
 {
     public TextureDisplayBlitter blitter;
 
-    public override IUpdatePacket InitializePacket() => new InitializeBlitToDisplayConnector(this, Owner);
+    public override IUpdatePacket InitializePacket()
+    {
+        return new InitializeBlitToDisplayConnector(this, Owner);
+    }
 
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesBlitToDisplayConnector(this));
+    public override void ApplyChanges()
+    {
+        Thundagun.QueuePacket(new ApplyChangesBlitToDisplayConnector(this));
+    }
 
     public override void DestroyMethod(bool destroyingWorld)
     {
@@ -23,14 +33,18 @@ public class BlitToDisplayConnector : ComponentConnectorSingle<BlitToDisplay>
                 Object.Destroy(blitter);
             blitter = null;
         }
+
         base.DestroyMethod(destroyingWorld);
     }
 }
 
-public class InitializeBlitToDisplayConnector : InitializeComponentConnectorSingle<BlitToDisplay, BlitToDisplayConnector>
+public class
+    InitializeBlitToDisplayConnector : InitializeComponentConnectorSingle<BlitToDisplay, BlitToDisplayConnector>
 {
     public Engine Engine;
-    public InitializeBlitToDisplayConnector(BlitToDisplayConnector connector, BlitToDisplay component) : base(connector, component)
+
+    public InitializeBlitToDisplayConnector(BlitToDisplayConnector connector, BlitToDisplay component) : base(connector,
+        component)
     {
         Engine = connector.Owner.Engine;
     }
@@ -46,11 +60,11 @@ public class InitializeBlitToDisplayConnector : InitializeComponentConnectorSing
 public class ApplyChangesBlitToDisplayConnector : UpdatePacket<BlitToDisplayConnector>
 {
     public bool Blit;
-    public IUnityTextureProvider Texture;
-    public int DisplayIndex;
     public Color Color;
+    public int DisplayIndex;
     public bool FlipHorizontally;
     public bool FlipVertically;
+    public IUnityTextureProvider Texture;
 
     public ApplyChangesBlitToDisplayConnector(BlitToDisplayConnector owner) : base(owner)
     {

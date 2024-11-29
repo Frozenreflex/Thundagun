@@ -1,13 +1,17 @@
+#region
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Elements.Assets;
 using Elements.Core;
 using FrooxEngine;
 using UnityFrooxEngineRunner;
+using Bounds = UnityEngine.Bounds;
 using Mesh = UnityEngine.Mesh;
 using Object = UnityEngine.Object;
 using Transform = UnityEngine.Transform;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
@@ -15,42 +19,43 @@ public class SkinnedMeshRendererConnector :
     MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer>,
     ISkinnedMeshRendererConnector
 {
-    public SkinnedMeshRendererConnector _proxySource;
     public SkinBoundsUpdater _boundsUpdater;
-    public Transform[] bones;
-    private bool _sendingBoundsUpdate;
-    private HashSet<RenderTransformOverrideConnector> _forceRecalcRegistrations;
     public SkinnedBounds _currentBoundsMethod = (SkinnedBounds)(-1);
+    private HashSet<RenderTransformOverrideConnector> _forceRecalcRegistrations;
+    public SkinnedMeshRendererConnector _proxySource;
+    private bool _sendingBoundsUpdate;
+    public Transform[] bones;
+
+    public bool ForceRecalcPerRender
+    {
+        get
+        {
+            var forceRecalcRegistrations = _forceRecalcRegistrations;
+            if (forceRecalcRegistrations == null) return false;
+            return forceRecalcRegistrations.Count > 0;
+        }
+    }
+
+    public override bool UseMeshFilter => false;
 
     public bool LocalBoundingBoxAvailable { get; internal set; }
 
     public BoundingBox LocalBoundingBox { get; internal set; }
 
-    public bool ForceRecalcPerRender
-	{
-		get
-		{
-			HashSet<RenderTransformOverrideConnector> forceRecalcRegistrations = _forceRecalcRegistrations;
-			if (forceRecalcRegistrations == null)
-			{
-				return false;
-			}
-			return forceRecalcRegistrations.Count > 0;
-		}
-	}
-
-    public event Action BoundsUpdated;
-
-    public override bool UseMeshFilter => false;
-
-    public bool ForceRecalcActive => base.MeshRenderer?.forceMatrixRecalculationPerRender ?? false;
-
-    public override void AssignMesh(UnityEngine.SkinnedMeshRenderer renderer, Mesh mesh) => renderer.sharedMesh = mesh;
+    public bool ForceRecalcActive => MeshRenderer?.forceMatrixRecalculationPerRender ?? false;
 
     public override void ApplyChanges()
     {
         Thundagun.QueuePacket(new ApplyChangesSkinnedMeshRenderer(this));
     }
+
+    public event Action BoundsUpdated;
+
+    public override void AssignMesh(UnityEngine.SkinnedMeshRenderer renderer, Mesh mesh)
+    {
+        renderer.sharedMesh = mesh;
+    }
+
     public void CleanupBoundsUpdater()
     {
         if ((bool)_boundsUpdater)
@@ -67,26 +72,18 @@ public class SkinnedMeshRendererConnector :
     }
 
     internal void RequestForceRecalcPerRender(RenderTransformOverrideConnector connector)
-	{
-		if (_forceRecalcRegistrations == null)
-		{
-			_forceRecalcRegistrations = new HashSet<RenderTransformOverrideConnector>();
-		}
-		if (!ForceRecalcPerRender && base.MeshRenderer != null)
-		{
-			base.MeshRenderer.forceMatrixRecalculationPerRender = true;
-		}
-		_forceRecalcRegistrations.Add(connector);
-	}
+    {
+        if (_forceRecalcRegistrations == null)
+            _forceRecalcRegistrations = new HashSet<RenderTransformOverrideConnector>();
+        if (!ForceRecalcPerRender && MeshRenderer != null) MeshRenderer.forceMatrixRecalculationPerRender = true;
+        _forceRecalcRegistrations.Add(connector);
+    }
 
     internal void RemoveRequestForceRecalcPerRender(RenderTransformOverrideConnector connector)
-	{
-		_forceRecalcRegistrations.Remove(connector);
-		if (!ForceRecalcPerRender && base.MeshRenderer != null)
-		{
-			base.MeshRenderer.forceMatrixRecalculationPerRender = false;
-		}
-	}
+    {
+        _forceRecalcRegistrations.Remove(connector);
+        if (!ForceRecalcPerRender && MeshRenderer != null) MeshRenderer.forceMatrixRecalculationPerRender = false;
+    }
 
     public void SendBoundsUpdated()
     {
@@ -115,10 +112,8 @@ public class SkinnedMeshRendererConnector :
 
     public void ProxyBoundsUpdated()
     {
-        if (base.MeshRenderer != null && _proxySource.MeshRenderer != null)
-		{
-			base.MeshRenderer.localBounds = _proxySource.MeshRenderer.localBounds;
-		}
+        if (MeshRenderer != null && _proxySource.MeshRenderer != null)
+            MeshRenderer.localBounds = _proxySource.MeshRenderer.localBounds;
     }
 
     public override void OnAttachRenderer()
@@ -126,6 +121,7 @@ public class SkinnedMeshRendererConnector :
         base.OnAttachRenderer();
         Owner.BlendShapeWeightsChanged = true;
     }
+
     public override void DestroyMethod(bool destroyingWorld)
     {
         CleanupProxy();
@@ -135,6 +131,7 @@ public class SkinnedMeshRendererConnector :
             if (!destroyingWorld && (bool)_boundsUpdater) Object.Destroy(_boundsUpdater);
             _boundsUpdater = null;
         }
+
         bones = null;
         base.DestroyMethod(destroyingWorld);
     }
@@ -143,23 +140,21 @@ public class SkinnedMeshRendererConnector :
 public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnectorBase<SkinnedMeshRenderer,
     UnityEngine.SkinnedMeshRenderer>
 {
-    public SkinnedBounds SkinnedBounds;
-    public bool BoundsChanged;
-    public List<BoneMetadata> BoneMetadata;
     public List<ApproximateBoneBounds> ApproximateBounds;
-    public SkinnedMeshRendererConnector Proxy;
-    public UnityEngine.Bounds Bounds;
-
-    public bool BonesChanged;
+    public int? BlendShapeCount;
+    public List<float> BlendShapeWeights;
     public bool BlendShapeWeightsChanged;
     public int? BoneCount;
-    public int? BlendShapeCount;
+    public List<BoneMetadata> BoneMetadata;
 
     public List<SlotConnector> Bones;
-    public SlotConnector RootBone;
-    public List<float> BlendShapeWeights;
 
-    public SkinnedMeshRendererConnector Skinned => Owner as SkinnedMeshRendererConnector;
+    public bool BonesChanged;
+    public Bounds Bounds;
+    public bool BoundsChanged;
+    public SkinnedMeshRendererConnector Proxy;
+    public SlotConnector RootBone;
+    public SkinnedBounds SkinnedBounds;
 
     public ApplyChangesSkinnedMeshRenderer(SkinnedMeshRendererConnector owner) : base(owner)
     {
@@ -187,19 +182,18 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
             case SkinnedBounds.FastDisjointRootApproximate:
             case SkinnedBounds.MediumPerBoneApproximate:
             case SkinnedBounds.SlowRealtimeAccurate:
-                if (owner.Owner.Mesh.Asset is FrooxEngine.Mesh mesh && mesh.BoneMetadata != null && mesh.ApproximateBoneBounds != null)
+                if (owner.Owner.Mesh.Asset is FrooxEngine.Mesh mesh && mesh.BoneMetadata != null &&
+                    mesh.ApproximateBoneBounds != null)
                 {
                     BoneMetadata = new List<BoneMetadata>(mesh.BoneMetadata);
                     ApproximateBounds = new List<ApproximateBoneBounds>(mesh.ApproximateBoneBounds);
                 }
+
                 break;
         }
 
         BonesChanged = owner.Owner.BonesChanged;
-        if (BonesChanged || MeshWasChanged)
-        {
-            owner.Owner.BonesChanged = false;
-        }
+        if (BonesChanged || MeshWasChanged) owner.Owner.BonesChanged = false;
 
         BlendShapeCount = owner.Owner.Mesh.Asset?.Data?.BlendShapeCount;
 
@@ -207,27 +201,20 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
 
         Bones = new List<SlotConnector>();
         foreach (var bone in owner.Owner.Bones)
-        {
             if (bone?.Connector is SlotConnector slotConnector)
-            {
                 Bones.Add(bone?.Connector as SlotConnector);
-            }
             else
-            {
                 Bones.Add(null);
-            }
-        }
 
         RootBone = owner.Owner.GetRootBone()?.Connector as SlotConnector;
 
         BlendShapeWeightsChanged = owner.Owner.BlendShapeWeightsChanged;
-        if (BlendShapeWeightsChanged || MeshWasChanged)
-        {
-            owner.Owner.BlendShapeWeightsChanged = false;
-        }
+        if (BlendShapeWeightsChanged || MeshWasChanged) owner.Owner.BlendShapeWeightsChanged = false;
 
         BlendShapeWeights = new List<float>(owner.Owner.BlendShapeWeights);
     }
+
+    public SkinnedMeshRendererConnector Skinned => Owner as SkinnedMeshRendererConnector;
 
     public override void OnUpdateRenderer(bool instantiated)
     {
@@ -248,6 +235,7 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
                     Skinned._boundsUpdater = Skinned.MeshRenderer.gameObject.AddComponent<SkinBoundsUpdater>();
                     Skinned._boundsUpdater.connector = Skinned;
                 }
+
                 Skinned._boundsUpdater.boundsMethod = skinnedBounds;
                 Skinned._boundsUpdater.boneMetadata = BoneMetadata;
                 Skinned._boundsUpdater.approximateBounds = ApproximateBounds;
@@ -280,8 +268,10 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
                     Skinned.SendBoundsUpdated();
                 }
             }
+
             Skinned._currentBoundsMethod = skinnedBounds;
         }
+
         if (BonesChanged || MeshWasChanged)
         {
             Owner.Owner.BonesChanged = false;
@@ -310,8 +300,8 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
 
             Skinned.MeshRenderer.bones = Skinned.bones;
             Skinned.MeshRenderer.rootBone = weightBonelessOverride
-                    ? Skinned.AttachedGameObject.transform
-                    : RootBone?.ForceGetGameObject().transform;
+                ? Skinned.AttachedGameObject.transform
+                : RootBone?.ForceGetGameObject().transform;
         }
 
         if (BlendShapeWeightsChanged || MeshWasChanged)
@@ -320,13 +310,8 @@ public class ApplyChangesSkinnedMeshRenderer : ApplyChangesMeshRendererConnector
             var valueOrDefault = BlendShapeCount.GetValueOrDefault();
             var index1 = 0;
             for (var index2 = MathX.Min(valueOrDefault, BlendShapeWeights.Count); index1 < index2; index1++)
-            {
                 Skinned.MeshRenderer.SetBlendShapeWeight(index1, BlendShapeWeights[index1]);
-            }
-            for (; index1 < valueOrDefault; index1++)
-            {
-                Skinned.MeshRenderer.SetBlendShapeWeight(index1, 0.0f);
-            }
+            for (; index1 < valueOrDefault; index1++) Skinned.MeshRenderer.SetBlendShapeWeight(index1, 0.0f);
         }
 
         if (Skinned.ForceRecalcPerRender) Skinned.MeshRenderer.forceMatrixRecalculationPerRender = true;

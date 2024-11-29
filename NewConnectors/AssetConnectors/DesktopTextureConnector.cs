@@ -1,124 +1,121 @@
+#region
+
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using Elements.Core;
 using FrooxEngine;
-using UnityEngine;
-using UnityFrooxEngineRunner;
 using HarmonyLib;
 using uDesktopDuplication;
+using UnityFrooxEngineRunner;
 using uWindowCapture;
 using Texture = UnityEngine.Texture;
-using System.Reflection;
-using System.Collections.Generic;
+
+#endregion
 
 namespace Thundagun.NewConnectors.AssetConnectors;
 
 public class DesktopUpdatePacket : UpdatePacket<DuplicableDisplay>
 {
-    DuplicableDisplay Display;
-    uDesktopDuplication.Monitor Monitor;
-	static Type stateType;
-	static FieldInfo currentStateField;
-	List<Action> _requests;
-	uDesktopDuplication.Monitor _monitor;
-	object currentState;
-	UwcWindow _window;
-	enum State2
-	{
-		DirectCapture,
-		WaitingOnWindow,
-		WaitingOnTexture,
-		UsingWindowCapture
-	}
-    public DesktopUpdatePacket(DuplicableDisplay owner, uDesktopDuplication.Monitor monitor) : base(owner)
+    private static Type stateType;
+    private static FieldInfo currentStateField;
+    private readonly Monitor _monitor;
+    private readonly List<Action> _requests;
+    private readonly UwcWindow _window;
+    private readonly object currentState;
+    private readonly DuplicableDisplay Display;
+    private readonly Monitor Monitor;
+
+    public DesktopUpdatePacket(DuplicableDisplay owner, Monitor monitor) : base(owner)
     {
         Display = owner;
         Monitor = monitor;
-		stateType ??= Display.currentState.GetType();
-		currentStateField ??= AccessTools.Field(Display.GetType(), "currentState");
-		_requests = Display._requests;
-		_monitor = Display._monitor;
-		_window = Display._window;
-		currentState = Display.currentState;
+        stateType ??= Display.currentState.GetType();
+        currentStateField ??= AccessTools.Field(Display.GetType(), "currentState");
+        _requests = Display._requests;
+        _monitor = Display._monitor;
+        _window = Display._window;
+        currentState = Display.currentState;
     }
 
     public override void Update()
-	{
-		//Thundagun.Msg("DesktopUpdatePacket Update start");
+    {
+        //Thundagun.Msg("DesktopUpdatePacket Update start");
         if (_requests.Count == 0)
-		{
-			//Thundagun.Msg("Requests count 0");
-			Display._monitor = null;
-			Display._window = null;
-			Display.UpdateProperties(Monitor);
-			return;
-		}
-		bool flag = false;
-		if (Monitor != _monitor || ((int)currentState != 0 && (int)currentState != (int)State2.UsingWindowCapture))
-		{
-			if ((int)currentState != 0)
-			{
-				UniLog.Log($"Monitor {Monitor.id}, name: {Monitor.name}, state: {Monitor.state}");
-			}
-			if (Monitor.state == DuplicatorState.Unsupported)
-			{
-				//Thundagun.Msg("unsupported");
-				_ = UwcManager.instance;
-				Display._window = UwcManager.Find(Monitor.name, isAltTabWindow: false);
-				if (Display._window != null)
-				{
-					currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.WaitingOnTexture));
-					Display._window.captureMode = CaptureMode.BitBlt;
-					Display._window.cursorDraw = true;
-					UniLog.Log("Using fallback window capture: " + Display._window?.id);
-				}
-				else
-				{
-					currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.WaitingOnWindow));
-				}
-			}
-			else
-			{
-				currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.DirectCapture));
-				Display._window = null;
-			}
-			Display._monitor = Monitor;
-			flag = true;
-			if (_requests.Count > 0 && _window == null && (int)currentState == (int)State2.DirectCapture)
-			{
-				//Thundagun.Msg("creating texture if needed");
-				Display._monitor.CreateTextureIfNeeded();
-			}
-		}
-		if ((int)currentState != (int)State2.WaitingOnWindow)
-		{
-			if (_window != null)
-			{
-				//Thundagun.Msg("requesting capture");
-				Display._window.RequestCapture();
-			}
-			else
-			{
-				//Thundagun.Msg("rendering");
-				Display._monitor.Render();
-			}
-			//Thundagun.Msg("calling desktop rendered");
-			Engine.Current.DesktopRendered();
-		}
-		if ((int)currentState == (int)State2.WaitingOnTexture && _window?.texture != null)
-		{
-			flag = true;
-			currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.UsingWindowCapture));
-		}
-		Display.UpdateProperties(Monitor);
-		if (!flag || ((int)currentState != 0 && (int)currentState != (int)State2.UsingWindowCapture))
-		{
-			return;
-		}
-		foreach (Action request in _requests)
-		{
-			//Thundagun.Msg("request invoke");
-			request();
-		}
+        {
+            //Thundagun.Msg("Requests count 0");
+            Display._monitor = null;
+            Display._window = null;
+            Display.UpdateProperties(Monitor);
+            return;
+        }
+
+        var flag = false;
+        if (Monitor != _monitor || ((int)currentState != 0 && (int)currentState != (int)State2.UsingWindowCapture))
+        {
+            if ((int)currentState != 0)
+                UniLog.Log($"Monitor {Monitor.id}, name: {Monitor.name}, state: {Monitor.state}");
+            if (Monitor.state == DuplicatorState.Unsupported)
+            {
+                //Thundagun.Msg("unsupported");
+                _ = UwcManager.instance;
+                Display._window = UwcManager.Find(Monitor.name, false);
+                if (Display._window != null)
+                {
+                    currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.WaitingOnTexture));
+                    Display._window.captureMode = CaptureMode.BitBlt;
+                    Display._window.cursorDraw = true;
+                    UniLog.Log("Using fallback window capture: " + Display._window?.id);
+                }
+                else
+                {
+                    currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.WaitingOnWindow));
+                }
+            }
+            else
+            {
+                currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.DirectCapture));
+                Display._window = null;
+            }
+
+            Display._monitor = Monitor;
+            flag = true;
+            if (_requests.Count > 0 && _window == null && (int)currentState == (int)State2.DirectCapture)
+                //Thundagun.Msg("creating texture if needed");
+                Display._monitor.CreateTextureIfNeeded();
+        }
+
+        if ((int)currentState != (int)State2.WaitingOnWindow)
+        {
+            if (_window != null)
+                //Thundagun.Msg("requesting capture");
+                Display._window.RequestCapture();
+            else
+                //Thundagun.Msg("rendering");
+                Display._monitor.Render();
+            //Thundagun.Msg("calling desktop rendered");
+            Engine.Current.DesktopRendered();
+        }
+
+        if ((int)currentState == (int)State2.WaitingOnTexture && _window?.texture != null)
+        {
+            flag = true;
+            currentStateField.SetValue(Display, Enum.ToObject(stateType, (int)State2.UsingWindowCapture));
+        }
+
+        Display.UpdateProperties(Monitor);
+        if (!flag || ((int)currentState != 0 && (int)currentState != (int)State2.UsingWindowCapture)) return;
+        foreach (var request in _requests)
+            //Thundagun.Msg("request invoke");
+            request();
+    }
+
+    private enum State2
+    {
+        DirectCapture,
+        WaitingOnWindow,
+        WaitingOnTexture,
+        UsingWindowCapture
     }
 }
 
@@ -142,8 +139,6 @@ public class DesktopTextureConnector :
         }
     }
 
-    public Texture UnityTexture => (_lastSource as IUnityTextureProvider)?.UnityTexture;
-
     public void Update(int index, Action onUpdated)
     {
         var screen = Engine.InputInterface.TryGetDisplay(index) as IDisplayTextureSource;
@@ -162,7 +157,12 @@ public class DesktopTextureConnector :
             onUpdated();
     }
 
-    public override void Unload() => FreeSource();
+    public override void Unload()
+    {
+        FreeSource();
+    }
+
+    public Texture UnityTexture => (_lastSource as IUnityTextureProvider)?.UnityTexture;
 
     private void FreeSource()
     {

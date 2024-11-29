@@ -1,8 +1,15 @@
+#region
+
 using System;
 using Elements.Core;
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+using Object = UnityEngine.Object;
+using RenderTexture = UnityEngine.RenderTexture;
+using TextureWrapMode = FrooxEngine.TextureWrapMode;
+
+#endregion
 
 namespace Thundagun.NewConnectors.AssetConnectors;
 
@@ -11,13 +18,10 @@ public class RenderTextureConnector :
     IRenderTextureConnector,
     IUnityTextureProvider
 {
+    public RenderTexture RenderTexture { get; private set; }
     public int2 Size { get; private set; }
 
     public bool HasAlpha { get; private set; }
-
-    public UnityEngine.RenderTexture RenderTexture { get; private set; }
-
-    public Texture UnityTexture => RenderTexture;
 
     public override void Unload()
     {
@@ -29,7 +33,7 @@ public class RenderTextureConnector :
                 return;
             if (!_tex)
                 return;
-            UnityEngine.Object.Destroy(_tex);
+            Object.Destroy(_tex);
         }, true);
     }
 
@@ -38,8 +42,8 @@ public class RenderTextureConnector :
         int depth,
         TextureFilterMode filterMode,
         int anisoLevel,
-        FrooxEngine.TextureWrapMode wrapU,
-        FrooxEngine.TextureWrapMode wrapV,
+        TextureWrapMode wrapU,
+        TextureWrapMode wrapV,
         Action onUpdated)
     {
         UnityAssetIntegrator.EnqueueProcessing(() =>
@@ -47,7 +51,7 @@ public class RenderTextureConnector :
             size = MathX.Clamp(in size, 4, 8192);
             Size = size;
             Unload();
-            RenderTexture = new UnityEngine.RenderTexture(Size.x, Size.y, depth, RenderTextureFormat.ARGBHalf);
+            RenderTexture = new RenderTexture(Size.x, Size.y, depth, RenderTextureFormat.ARGBHalf);
             RenderTexture.Create();
             if (filterMode == TextureFilterMode.Anisotropic)
             {
@@ -65,4 +69,6 @@ public class RenderTextureConnector :
             onUpdated();
         }, false);
     }
+
+    public Texture UnityTexture => RenderTexture;
 }

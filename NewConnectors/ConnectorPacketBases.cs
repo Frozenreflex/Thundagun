@@ -1,6 +1,10 @@
+#region
+
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
+
+#endregion
 
 namespace Thundagun.NewConnectors;
 
@@ -10,6 +14,7 @@ public class InitializeComponentConnector<TD, TC, T> : UpdatePacket<T>
     where T : ComponentConnector<TD, TC>
 {
     public SlotConnector Connector;
+
     public InitializeComponentConnector(T connector, TD component) : base(connector)
     {
         Owner.SlotConnector = (SlotConnector)component.Slot.Connector;
@@ -37,7 +42,6 @@ public class InitializeUnityComponentConnector<TC, TU, T> : InitializeComponentC
 {
     public InitializeUnityComponentConnector(T connector, TC component) : base(connector, component)
     {
-
     }
 
     public override void Update()
@@ -48,14 +52,14 @@ public class InitializeUnityComponentConnector<TC, TU, T> : InitializeComponentC
     }
 }
 
-
-
 public class DestroyComponentConnector<TD, TC> : UpdatePacket<ComponentConnector<TD, TC>>
     where TD : ImplementableComponent<TC>
     where TC : class, IConnector
 {
     public bool DestroyingWorld;
-    public DestroyComponentConnector(ComponentConnector<TD, TC> connector, TD component, bool destroyingWorld) : base(connector)
+
+    public DestroyComponentConnector(ComponentConnector<TD, TC> connector, TD component, bool destroyingWorld) :
+        base(connector)
     {
         DestroyingWorld = destroyingWorld;
     }
@@ -83,12 +87,13 @@ public class DestroyUnityComponentConnector<TC, TU> : DestroyComponentConnector<
     where TC : ImplementableComponent
     where TU : MonoBehaviour, IConnectorBehaviour
 {
-    public UnityComponentConnector<TC, TU> OwnerConnector => Owner as UnityComponentConnector<TC, TU>;
-
-    public DestroyUnityComponentConnector(UnityComponentConnector<TC, TU> connector, TC component, bool destroyingWorld) :
+    public DestroyUnityComponentConnector(UnityComponentConnector<TC, TU> connector, TC component,
+        bool destroyingWorld) :
         base(connector, component, destroyingWorld)
     {
     }
+
+    public UnityComponentConnector<TC, TU> OwnerConnector => Owner as UnityComponentConnector<TC, TU>;
 
     public override void Update()
     {

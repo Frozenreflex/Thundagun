@@ -1,8 +1,12 @@
+#region
+
 using Elements.Core;
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
 using AudioRolloffMode = UnityEngine.AudioRolloffMode;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
@@ -12,7 +16,10 @@ public class AudioOutputConnector : ComponentConnectorSingle<AudioOutput>
 
     public AudioSource UnityAudioSource => _outputBehavior?._unityAudio;
 
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesAudioOutputConnector(this));
+    public override void ApplyChanges()
+    {
+        Thundagun.QueuePacket(new ApplyChangesAudioOutputConnector(this));
+    }
 
     public override void DestroyMethod(bool destroyingWorld)
     {
@@ -30,25 +37,24 @@ public class AudioOutputConnector : ComponentConnectorSingle<AudioOutput>
 
 public class ApplyChangesAudioOutputConnector : UpdatePacket<AudioOutputConnector>
 {
-    public bool ShouldBeEnabled;
-    public IAudioSource Target;
     public float ActualVolume;
+    public float DopplerLevel;
+    public bool IgnoreReverbZones;
+    public float MaxDistance;
+    public float MinDistance;
     public int Priority;
+    public AudioRolloffMode RolloffMode;
+    public bool ShouldBeEnabled;
     public float SpatialBlend;
     public bool Spatialize;
-    public float DopplerLevel;
-    public float MinDistance;
-    public float MaxDistance;
-    public bool IgnoreReverbZones;
-    public AudioRolloffMode RolloffMode;
+    public IAudioSource Target;
 
     public ApplyChangesAudioOutputConnector(AudioOutputConnector owner) : base(owner)
     {
         ShouldBeEnabled = owner.Owner.ShouldBeEnabled;
         if (ShouldBeEnabled)
         {
-            
-        //TODO: do we need to make audio targets async too? or are they thread safe?
+            //TODO: do we need to make audio targets async too? or are they thread safe?
             Target = owner.Owner.Source.Target;
             ActualVolume = owner.Owner.ActualVolume;
             Priority = MathX.Clamp(owner.Owner.Priority.Value, 0, byte.MaxValue);
@@ -76,6 +82,7 @@ public class ApplyChangesAudioOutputConnector : UpdatePacket<AudioOutputConnecto
                 Owner._outputBehavior = gameObject.AddComponent<AudioOutputBehavior>();
                 Owner._outputBehavior.Init(Owner.Engine);
             }
+
             var unityAudio = Owner._outputBehavior._unityAudio;
             if (unityAudio.spatializePostEffects) unityAudio.spatializePostEffects = false;
             Owner._outputBehavior._audioSource = Target;
@@ -92,6 +99,7 @@ public class ApplyChangesAudioOutputConnector : UpdatePacket<AudioOutputConnecto
                     else Owner.Engine.AudioSystem.SpatializerDisabled(Owner.Owner);
                 }
             }
+
             if (unityAudio.dopplerLevel != DopplerLevel) unityAudio.dopplerLevel = DopplerLevel;
 
             var minDistance = MathX.Clamp(MinDistance, 0.0f, 1000000f);

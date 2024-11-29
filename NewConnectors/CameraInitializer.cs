@@ -1,5 +1,9 @@
+#region
+
 using UnityEngine;
 using UnityFrooxEngineRunner;
+
+#endregion
 
 namespace Thundagun.NewConnectors;
 
@@ -26,7 +30,8 @@ public static class CameraInitializer
         bool motionBlur,
         bool screenspaceReflections)
     {
-        c.GetComponent<CameraPostprocessingManager>()?.UpdatePostProcessing(enabled, motionBlur, screenspaceReflections);
+        c.GetComponent<CameraPostprocessingManager>()
+            ?.UpdatePostProcessing(enabled, motionBlur, screenspaceReflections);
     }
 
     public static void RemovePostProcessing(Camera c)

@@ -1,10 +1,15 @@
+#region
+
+using System.Linq;
 using AmplifyOcclusion;
 using Elements.Core;
 using FrooxEngine;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using UnityFrooxEngineRunner;
+using Camera = UnityEngine.Camera;
+
+#endregion
 
 namespace Thundagun.NewConnectors;
 
@@ -12,27 +17,37 @@ public class CameraPostprocessingManager : MonoBehaviour
 {
     private static PostProcessResources _resources;
     private static PostProcessProfile _baseProfile;
-    private PostProcessLayer _postProcessing;
     public MotionBlur _motionBlur;
     public Bloom _bloom;
     public AmplifyOcclusionEffect _ao;
     public ScreenSpaceReflections _ssr;
     private CTAA_PC _ctaaPC;
     private CTAAVR_SPS _ctaaVR;
+    private PostProcessLayer _postProcessing;
 
-    public UnityEngine.Camera Camera { get; private set; }
+    public Camera Camera { get; private set; }
 
     public bool IsPrimary { get; private set; }
 
     public bool IsVR { get; private set; }
 
-    public void Initialize(UnityEngine.Camera camera, CameraSettings settings)
+    private void OnDestroy()
+    {
+        Settings.UnregisterValueChanges(new SettingUpdateHandler<PostProcessingSettings>(OnPostProcessingChanged));
+        RemovePostProcessing();
+    }
+
+    public void Initialize(Camera camera, CameraSettings settings)
     {
         Camera = camera;
         IsPrimary = settings.IsPrimary;
         IsVR = settings.IsVR;
         InitializePostProcessing();
-        if (IsPrimary) FrooxEngineBootstrap.RunPostInitAction(() => Settings.RegisterValueChanges<PostProcessingSettings>(OnPostProcessingChanged));
+        if (IsPrimary)
+        {
+            FrooxEngineBootstrap.RunPostInitAction(() =>
+                Settings.RegisterValueChanges<PostProcessingSettings>(OnPostProcessingChanged));
+        }
         else
         {
             _motionBlur.enabled.value = settings.MotionBlur && !IsVR;
@@ -52,7 +67,10 @@ public class CameraPostprocessingManager : MonoBehaviour
         _ssr.enabled.value = screenspaceReflections;
     }
 
-    private void OnPostProcessingChanged(PostProcessingSettings settings) => Thundagun.QueuePacket(new OnPostProcessingChangedPacket(this, settings));
+    private void OnPostProcessingChanged(PostProcessingSettings settings)
+    {
+        Thundagun.QueuePacket(new OnPostProcessingChangedPacket(this, settings));
+    }
 
     private void InitializePostProcessing()
     {
@@ -72,7 +90,8 @@ public class CameraPostprocessingManager : MonoBehaviour
         if (_baseProfile == null) _baseProfile = Resources.Load<PostProcessProfile>("PostProcessing_V2");
         var postProcessProfile = Instantiate(_baseProfile);
         postProcessProfile.settings.Clear();
-        foreach (var setting in _baseProfile.settings.Where(setting => !IsPrimary || setting is not ColorGrading)) postProcessProfile.settings.Add(Instantiate(setting));
+        foreach (var setting in _baseProfile.settings.Where(setting => !IsPrimary || setting is not ColorGrading))
+            postProcessProfile.settings.Add(Instantiate(setting));
         _postProcessing.defaultProfile = postProcessProfile;
     }
 
@@ -116,7 +135,8 @@ public class CameraPostprocessingManager : MonoBehaviour
                 break;
             case AntiAliasingMethod.SMAA:
                 _postProcessing.antialiasingMode = PostProcessLayer.Antialiasing.SubpixelMorphologicalAntialiasing;
-                _postProcessing.subpixelMorphologicalAntialiasing.quality = SubpixelMorphologicalAntialiasing.Quality.High;
+                _postProcessing.subpixelMorphologicalAntialiasing.quality =
+                    SubpixelMorphologicalAntialiasing.Quality.High;
                 _postProcessing.finalBlitToCameraTarget = !IsPrimary;
                 break;
             case AntiAliasingMethod.TAA:
@@ -124,6 +144,7 @@ public class CameraPostprocessingManager : MonoBehaviour
                 _postProcessing.finalBlitToCameraTarget = !IsPrimary;
                 break;
         }
+
         if (method == AntiAliasingMethod.CTAA)
         {
             if (IsVR)
@@ -141,7 +162,10 @@ public class CameraPostprocessingManager : MonoBehaviour
                 _ctaaPC.AdaptiveSharpness = 0.2f;
             }
         }
-        else RemoveCTAA();
+        else
+        {
+            RemoveCTAA();
+        }
     }
 
     private void RemoveCTAA()
@@ -160,28 +184,24 @@ public class CameraPostprocessingManager : MonoBehaviour
             Destroy(_postProcessing);
             _postProcessing = null;
         }
+
         RemoveCTAA();
         if (_ao == null) return;
         Destroy(_ao);
         _ao = null;
     }
-
-    private void OnDestroy()
-    {
-        Settings.UnregisterValueChanges(new SettingUpdateHandler<PostProcessingSettings>(OnPostProcessingChanged));
-        RemovePostProcessing();
-    }
 }
 
 public class OnPostProcessingChangedPacket : UpdatePacket<CameraPostprocessingManager>
 {
-    private readonly float _motionBlurIntensity;
-    private readonly float _bloomIntensity;
     private readonly float _ambientOcclusionIntensity;
-    private readonly bool _screenSpaceReflections;
     private readonly AntiAliasingMethod _antialiasing;
-    
-    public OnPostProcessingChangedPacket(CameraPostprocessingManager owner, PostProcessingSettings settings) : base(owner)
+    private readonly float _bloomIntensity;
+    private readonly float _motionBlurIntensity;
+    private readonly bool _screenSpaceReflections;
+
+    public OnPostProcessingChangedPacket(CameraPostprocessingManager owner, PostProcessingSettings settings) :
+        base(owner)
     {
         _motionBlurIntensity = settings.MotionBlurIntensity;
         _bloomIntensity = settings.BloomIntensity;
@@ -189,6 +209,7 @@ public class OnPostProcessingChangedPacket : UpdatePacket<CameraPostprocessingMa
         _screenSpaceReflections = settings.ScreenSpaceReflections;
         _antialiasing = settings.Antialiasing;
     }
+
     public override void Update()
     {
         if (Owner == null) return;
@@ -197,16 +218,19 @@ public class OnPostProcessingChangedPacket : UpdatePacket<CameraPostprocessingMa
             Owner._motionBlur.enabled.value = !Owner.IsVR && !MathX.Approximately(_motionBlurIntensity, 0.0f);
             Owner._motionBlur.shutterAngle.value = _motionBlurIntensity * 360f;
         }
+
         if (Owner._bloom != null)
         {
             Owner._bloom.enabled.value = !MathX.Approximately(_bloomIntensity, 0.0f);
             Owner._bloom.intensity.value = _bloomIntensity;
         }
+
         if (Owner._ao != null)
         {
             Owner._ao.enabled = !MathX.Approximately(_ambientOcclusionIntensity, 0.0f);
             Owner._ao.Intensity = _ambientOcclusionIntensity;
         }
+
         if (Owner._ssr != null) Owner._ssr.enabled.value = _screenSpaceReflections;
         Owner.UpdateAA(_antialiasing);
     }

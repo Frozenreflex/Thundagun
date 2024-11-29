@@ -1,8 +1,13 @@
+#region
+
 using Elements.Core;
 using FrooxEngine;
 using UnityEngine;
 using UnityFrooxEngineRunner;
 using Light = FrooxEngine.Light;
+using LightType = UnityEngine.LightType;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
@@ -12,9 +17,15 @@ public class LightConnector : ComponentConnectorSingle<Light>
 
     public UnityEngine.Light UnityLight { get; set; }
 
-    public override IUpdatePacket InitializePacket() => new InitializeLightConnector(this, Owner);
+    public override IUpdatePacket InitializePacket()
+    {
+        return new InitializeLightConnector(this, Owner);
+    }
 
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesLightConnector(this));
+    public override void ApplyChanges()
+    {
+        Thundagun.QueuePacket(new ApplyChangesLightConnector(this));
+    }
 
     public override void DestroyMethod(bool destroyingWorld)
     {
@@ -43,35 +54,35 @@ public class InitializeLightConnector : InitializeComponentConnectorSingle<Light
 
 public class ApplyChangesLightConnector : UpdatePacket<LightConnector>
 {
-    public UnityEngine.LightType? Type;
-    public LightShadows? Shadows;
-    public bool ShouldBeEnabled;
     public Color Color;
+    public IUnityTextureProvider Cookie;
     public float Intensity;
     public float Range;
-    public float SpotAngle;
-    public float ShadowStrength;
-    public float ShadowNearPlane;
-    public int ShadowCustomResolution;
     public float ShadowBias;
+    public int ShadowCustomResolution;
+    public float ShadowNearPlane;
     public float ShadowNormalBias;
-    public IUnityTextureProvider Cookie;
+    public LightShadows? Shadows;
+    public float ShadowStrength;
+    public bool ShouldBeEnabled;
+    public float SpotAngle;
+    public LightType? Type;
 
     public ApplyChangesLightConnector(LightConnector owner) : base(owner)
     {
         Type = owner.Owner.LightType.Value switch
         {
-            FrooxEngine.LightType.Point => UnityEngine.LightType.Point,
-            FrooxEngine.LightType.Directional => UnityEngine.LightType.Directional,
-            FrooxEngine.LightType.Spot => UnityEngine.LightType.Spot,
-            _ => null,
+            FrooxEngine.LightType.Point => LightType.Point,
+            FrooxEngine.LightType.Directional => LightType.Directional,
+            FrooxEngine.LightType.Spot => LightType.Spot,
+            _ => null
         };
         Shadows = owner.Owner.ShadowType.Value switch
         {
             ShadowType.None => LightShadows.None,
             ShadowType.Hard => LightShadows.Hard,
             ShadowType.Soft => LightShadows.Soft,
-            _ => null,
+            _ => null
         };
         ShouldBeEnabled = owner.Owner.ShouldBeEnabled;
         if (!ShouldBeEnabled) return;

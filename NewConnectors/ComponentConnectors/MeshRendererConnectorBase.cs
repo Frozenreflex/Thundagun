@@ -1,3 +1,5 @@
+#region
+
 using System.Collections.Generic;
 using System.Linq;
 using Elements.Core;
@@ -5,30 +7,33 @@ using FrooxEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityFrooxEngineRunner;
+using Material = UnityEngine.Material;
 using Mesh = UnityEngine.Mesh;
 using MeshConnector = Thundagun.NewConnectors.AssetConnectors.MeshConnector;
 using MaterialConnector = Thundagun.NewConnectors.AssetConnectors.MaterialConnector;
 using MaterialPropertyBlockConnector = Thundagun.NewConnectors.AssetConnectors.MaterialPropertyBlockConnector;
+using MeshRenderer = FrooxEngine.MeshRenderer;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
 public abstract class MeshRendererConnectorBase<T, TU> : ComponentConnectorSingle<T>, IRendererConnector
-    where T : FrooxEngine.MeshRenderer
+    where T : MeshRenderer
     where TU : Renderer
 {
-    public bool UsesMaterialPropertyBlocks;
-    public UnityEngine.Material[] UnityMaterials;
+    public int MaterialCount;
     public MeshFilter MeshFilter;
+    public Material[] UnityMaterials;
+    public bool UsesMaterialPropertyBlocks;
 
     public abstract bool UseMeshFilter { get; }
 
-    public abstract void AssignMesh(TU renderer, Mesh mesh);
-
-    public int MaterialCount;
+    public TU MeshRenderer { get; set; }
 
     UnityEngine.Renderer IRendererConnector.Renderer => MeshRenderer;
 
-    public TU MeshRenderer { get; set; }
+    public abstract void AssignMesh(TU renderer, Mesh mesh);
 
     public virtual void OnAttachRenderer()
     {
@@ -38,7 +43,10 @@ public abstract class MeshRendererConnectorBase<T, TU> : ComponentConnectorSingl
     {
     }
 
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesMeshRendererConnectorBase<T, TU>(this));
+    public override void ApplyChanges()
+    {
+        Thundagun.QueuePacket(new ApplyChangesMeshRendererConnectorBase<T, TU>(this));
+    }
 
     public void CleanupRenderer(bool destroyingWorld)
     {
@@ -66,24 +74,24 @@ public abstract class MeshRendererConnectorBase<T, TU> : ComponentConnectorSingl
 }
 
 public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRendererConnectorBase<T, TU>>
-    where T : FrooxEngine.MeshRenderer
+    where T : MeshRenderer
     where TU : Renderer
 {
-    public bool ShouldBeEnabled;
-    public bool MeshWasChanged;
-    public MeshConnector Mesh;
-    public bool MaterialsChanged;
-    public bool IsLocalElement;
-    public List<IMaterialConnector> Materials;
-    public bool MaterialPropertyBlocksChanged;
-    public List<IMaterialPropertyBlockConnector> MaterialPropertyBlocks;
     public bool Enabled;
-    public bool SortingOrderChanged;
-    public int SortingOrder;
-    public bool ShadowCastingModeChanged;
-    public ShadowCastingMode ShadowCastingMode;
-    public bool MotionVectorModeChanged;
+    public bool IsLocalElement;
+    public List<IMaterialPropertyBlockConnector> MaterialPropertyBlocks;
+    public bool MaterialPropertyBlocksChanged;
+    public List<IMaterialConnector> Materials;
+    public bool MaterialsChanged;
+    public MeshConnector Mesh;
+    public bool MeshWasChanged;
     public MotionVectorGenerationMode MotionVectorMode;
+    public bool MotionVectorModeChanged;
+    public ShadowCastingMode ShadowCastingMode;
+    public bool ShadowCastingModeChanged;
+    public bool ShouldBeEnabled;
+    public int SortingOrder;
+    public bool SortingOrderChanged;
 
     public ApplyChangesMeshRendererConnectorBase(MeshRendererConnectorBase<T, TU> owner) : base(owner)
     {
@@ -95,14 +103,9 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
             MaterialsChanged = owner.Owner.MaterialsChanged;
             IsLocalElement = Owner.Owner.IsLocalElement;
             MaterialPropertyBlocksChanged = owner.Owner.MaterialPropertyBlocksChanged;
-            if (MaterialsChanged || MeshWasChanged)
-            {
-                owner.Owner.MaterialsChanged = false;
-            }
+            if (MaterialsChanged || MeshWasChanged) owner.Owner.MaterialsChanged = false;
             if (MaterialsChanged || MeshWasChanged || MaterialPropertyBlocksChanged)
-            {
                 owner.Owner.MaterialPropertyBlocksChanged = false;
-            }
             Materials = owner.Owner.Materials.Select(i => i?.Asset?.Connector).ToList();
             MaterialPropertyBlocks = owner.Owner.MaterialPropertyBlocks.Select(i => i?.Asset?.Connector).ToList();
             Enabled = owner.Owner.Enabled;
@@ -123,7 +126,7 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
         }
         else
         {
-            bool instantiated = false;
+            var instantiated = false;
             if (Owner.MeshRenderer == null)
             {
                 var gameObject = new GameObject("");
@@ -160,9 +163,14 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
                     Owner.MaterialCount = Owner.UnityMaterials.Length;
                 }
                 else if (Materials.Count == 1)
-                    Owner.MeshRenderer.sharedMaterial = (Materials[0] as MaterialConnector)?.UnityMaterial ?? nullMaterial;
+                {
+                    Owner.MeshRenderer.sharedMaterial =
+                        (Materials[0] as MaterialConnector)?.UnityMaterial ?? nullMaterial;
+                }
                 else
+                {
                     Owner.MeshRenderer.sharedMaterial = nullMaterial;
+                }
             }
 
             if (MaterialPropertyBlocksChanged || flag)
@@ -170,7 +178,6 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
                 if (MaterialPropertyBlocks.Count > 0)
                 {
                     for (var i = 0; i < Owner.MaterialCount; i++)
-                    {
                         if (i < MaterialPropertyBlocks.Count)
                         {
                             var materialPropertyBlock = MaterialPropertyBlocks[i] as MaterialPropertyBlockConnector;
@@ -178,8 +185,9 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
                             Owner.MeshRenderer.SetPropertyBlock(unity, i);
                         }
                         else
+                        {
                             Owner.MeshRenderer.SetPropertyBlock(null, i);
-                    }
+                        }
 
                     Owner.UsesMaterialPropertyBlocks = true;
                 }
@@ -193,10 +201,12 @@ public class ApplyChangesMeshRendererConnectorBase<T, TU> : UpdatePacket<MeshRen
             if (Owner.MeshRenderer.enabled != Enabled) Owner.MeshRenderer.enabled = Enabled;
             if (SortingOrderChanged || instantiated) Owner.MeshRenderer.sortingOrder = SortingOrder;
             if (ShadowCastingModeChanged || instantiated) Owner.MeshRenderer.shadowCastingMode = ShadowCastingMode;
-            if (MotionVectorModeChanged || instantiated) Owner.MeshRenderer.motionVectorGenerationMode = MotionVectorMode;
+            if (MotionVectorModeChanged || instantiated)
+                Owner.MeshRenderer.motionVectorGenerationMode = MotionVectorMode;
             OnUpdateRenderer(instantiated);
         }
     }
+
     public virtual void OnUpdateRenderer(bool instantiated)
     {
     }

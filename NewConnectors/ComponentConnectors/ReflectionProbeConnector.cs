@@ -1,3 +1,5 @@
+#region
+
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Elements.Assets;
@@ -8,24 +10,22 @@ using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityFrooxEngineRunner;
 using ReflectionProbe = FrooxEngine.ReflectionProbe;
+using RenderTexture = UnityEngine.RenderTexture;
+
+#endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
 
-public class ReflectionProbeConnector : ComponentConnector<ReflectionProbe, IReflectionProbeConnector>, IReflectionProbeConnector
+public class ReflectionProbeConnector : ComponentConnector<ReflectionProbe, IReflectionProbeConnector>,
+    IReflectionProbeConnector
 {
     public UnityEngine.ReflectionProbe probe;
 
     public GameObject probeGO;
 
-    public override IUpdatePacket InitializePacket() => new InitializeReflectionProbeConnector(this, Owner);
-
-    public override void ApplyChanges() => Thundagun.QueuePacket(new ApplyChangesReflectionProbeConnector(this));
-
-    public override void DestroyMethod(bool destroyingWorld)
+    public override void ApplyChanges()
     {
-        if (!destroyingWorld && probeGO) Object.Destroy(probeGO);
-        probeGO = null;
-        base.DestroyMethod(destroyingWorld);
+        Thundagun.QueuePacket(new ApplyChangesReflectionProbeConnector(this));
     }
 
     public Task<BitmapCube> Render(List<Slot> excludeList)
@@ -37,20 +37,34 @@ public class ReflectionProbeConnector : ComponentConnector<ReflectionProbe, IRef
             reflectionProbeRenderer.probe = probe;
             reflectionProbeRenderer.task = completionSource;
             var value = Owner.Resolution.Value;
-            var desc = new RenderTextureDescriptor(value, value, Owner.HDR.Value ? GraphicsFormat.R16G16B16A16_SFloat : GraphicsFormat.R8G8B8A8_UNorm, 24, -1)
+            var desc = new RenderTextureDescriptor(value, value,
+                Owner.HDR.Value ? GraphicsFormat.R16G16B16A16_SFloat : GraphicsFormat.R8G8B8A8_UNorm, 24, -1)
             {
                 useMipMap = true,
                 dimension = TextureDimension.Cube,
                 autoGenerateMips = false
             };
-            var temporary = UnityEngine.RenderTexture.GetTemporary(desc);
+            var temporary = RenderTexture.GetTemporary(desc);
             reflectionProbeRenderer.previousLayers = Pool.BorrowDictionary<GameObject, int>();
-            RenderHelper.SetHiearchyLayer(excludeList, LayerMask.NameToLayer("Temp"), reflectionProbeRenderer.previousLayers);
+            RenderHelper.SetHiearchyLayer(excludeList, LayerMask.NameToLayer("Temp"),
+                reflectionProbeRenderer.previousLayers);
             reflectionProbeRenderer.texture = temporary;
             probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
             reflectionProbeRenderer.renderId = probe.RenderProbe(temporary);
         });
         return completionSource.Task;
+    }
+
+    public override IUpdatePacket InitializePacket()
+    {
+        return new InitializeReflectionProbeConnector(this, Owner);
+    }
+
+    public override void DestroyMethod(bool destroyingWorld)
+    {
+        if (!destroyingWorld && probeGO) Object.Destroy(probeGO);
+        probeGO = null;
+        base.DestroyMethod(destroyingWorld);
     }
 }
 
@@ -66,7 +80,7 @@ public class InitializeReflectionProbeConnector : InitializeComponentConnector<R
     {
         base.Update();
         Owner.probeGO = new GameObject("");
-        Owner.probeGO.transform.SetParent(Owner.AttachedGameObject.transform, worldPositionStays: false);
+        Owner.probeGO.transform.SetParent(Owner.AttachedGameObject.transform, false);
         Owner.probeGO.layer = Owner.AttachedGameObject.layer;
         Owner.probe = Owner.probeGO.AddComponent<UnityEngine.ReflectionProbe>();
         Owner.probe.cullingMask = RenderHelper.PUBLIC_RENDER_MASK;
@@ -75,22 +89,22 @@ public class InitializeReflectionProbeConnector : InitializeComponentConnector<R
 
 public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbeConnector>
 {
-    public ReflectionProbeMode ProbeMode;
     public IUnityTextureProvider BakedTexture;
-    public ReflectionProbeRefreshMode RefreshMode;
-    public int ProbeImportance;
-    public float ProbeIntensity;
+    public Color ProbeBackgroundColor;
     public float ProbeBlendDistance;
     public bool ProbeBoxProjection;
+    public ReflectionProbeClearFlags ProbeClearFlags;
+    public float ProbeFarClipPlane;
+    public bool ProbeHdr;
+    public int ProbeImportance;
+    public float ProbeIntensity;
+    public ReflectionProbeMode ProbeMode;
+    public float ProbeNearClipPlane;
+    public int ProbeResolution;
+    public float ProbeShadowDistance;
     public Vector3 ProbeSize;
     public ReflectionProbeTimeSlicingMode ProbeTimeSlicingMode;
-    public int ProbeResolution;
-    public bool ProbeHdr;
-    public float ProbeShadowDistance;
-    public ReflectionProbeClearFlags ProbeClearFlags;
-    public Color ProbeBackgroundColor;
-    public float ProbeNearClipPlane;
-    public float ProbeFarClipPlane;
+    public ReflectionProbeRefreshMode RefreshMode;
 
     public ApplyChangesReflectionProbeConnector(ReflectionProbeConnector owner) : base(owner)
     {
@@ -106,6 +120,7 @@ public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbe
                 BakedTexture = null;
                 break;
         }
+
         ProbeImportance = owner.Owner.Importance.Value;
         ProbeIntensity = owner.Owner.Intensity.Value;
         ProbeBlendDistance = owner.Owner.BlendDistance.Value;
@@ -119,7 +134,7 @@ public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbe
         {
             ReflectionProbe.Clear.Skybox => ReflectionProbeClearFlags.Skybox,
             ReflectionProbe.Clear.Color => ReflectionProbeClearFlags.SolidColor,
-            _ => ReflectionProbeClearFlags.SolidColor,
+            _ => ReflectionProbeClearFlags.SolidColor
         };
         ProbeBackgroundColor = owner.Owner.BackgroundColor.Value.ToUnity(ColorProfile.sRGB);
         ProbeNearClipPlane = owner.Owner.NearClip.Value;

@@ -1,48 +1,49 @@
-﻿using Elements.Assets;
-using Elements.Core;
-using FrooxEngine;
+﻿#region
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Elements.Assets;
+using Elements.Core;
+using FrooxEngine;
 using UnityEngine;
+using TextureFormat = Elements.Assets.TextureFormat;
+
+#endregion
 
 namespace Thundagun.NewConnectors;
 
 public class RenderSettings
 {
-	public float3 position;
+    public CameraClearMode clear;
 
-	public floatQ rotation;
+    public colorX clearColor;
 
-	public int2 size;
+    public Func<Bitmap2D, Bitmap2D> customPostProcess;
 
-	public Elements.Assets.TextureFormat textureFormat;
+    public List<GameObject> excludeObjects;
 
-	public CameraProjection projection;
+    public float far;
 
-	public float fov;
+    public float fov;
 
-	public float ortographicSize;
+    public float near;
 
-	public CameraClearMode clear;
+    public float ortographicSize;
+    public float3 position;
 
-	public colorX clearColor;
+    public bool postProcesing;
 
-	public float near;
+    public CameraProjection projection;
 
-	public float far;
+    public List<GameObject> renderObjects;
 
-	public List<GameObject> renderObjects;
+    public bool renderPrivateUI;
 
-	public List<GameObject> excludeObjects;
+    public floatQ rotation;
 
-	public bool renderPrivateUI;
+    public bool screenspaceReflections;
 
-	public bool postProcesing;
+    public int2 size;
 
-	public bool screenspaceReflections;
-
-	public Func<Bitmap2D, Bitmap2D> customPostProcess;
+    public TextureFormat textureFormat;
 }
