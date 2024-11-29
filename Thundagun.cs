@@ -128,8 +128,11 @@ public class Thundagun : ResoniteMod
             }
         }
 
-        // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
-        Engine.Current.RunPostInit(() => { Engine.Current.WorldManager.WorldFocused += WorldAdded; });
+        if (!Engine.Current.IsWine)
+        {
+            // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
+            Engine.Current.RunPostInit(() => { Engine.Current.WorldManager.WorldFocused += WorldAdded; });
+        }
     }
 
     public static void PatchEngineTypes()
