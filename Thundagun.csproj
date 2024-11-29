@@ -1,124 +1,155 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net4.7.2</TargetFramework>
-    <ResonitePath>$(MSBuildThisFileDirectory)Resonite</ResonitePath>
-    <ResonitePath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Resonite\')">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</ResonitePath>
-	<ResonitePath Condition="Exists('G:\SteamLibrary\steamapps\common\Resonite\')">G:\SteamLibrary\steamapps\common\Resonite\</ResonitePath>
-	  <ResonitePath Condition="Exists('D:\SteamLibrary\steamapps\common\Resonite\')">D:\SteamLibrary\steamapps\common\Resonite\</ResonitePath>
-	  <ResonitePath Condition="Exists('$(HOME)/.steam/steam/steamapps/common/Resonite/')">$(HOME)/.steam/steam/steamapps/common/Resonite/</ResonitePath>
-    <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/</ResonitePath>
-    <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/</ResonitePath>
-    <LangVersion>latest</LangVersion>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net4.7.2</TargetFramework>
+        <ResonitePath>$(MSBuildThisFileDirectory)Resonite</ResonitePath>
+        <ResonitePath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Resonite\')">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</ResonitePath>
+        <ResonitePath Condition="Exists('G:\SteamLibrary\steamapps\common\Resonite\')">G:\SteamLibrary\steamapps\common\Resonite\</ResonitePath>
+        <ResonitePath Condition="Exists('D:\SteamLibrary\steamapps\common\Resonite\')">D:\SteamLibrary\steamapps\common\Resonite\</ResonitePath>
+        <ResonitePath Condition="Exists('$(HOME)/.steam/steam/steamapps/common/Resonite/')">$(HOME)/.steam/steam/steamapps/common/Resonite/</ResonitePath>
+        <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/Resonite/</ResonitePath>
+        <ResonitePath Condition="Exists('/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/')">/mnt/LocalDisk2/SteamLibrary/steamapps/common/ResoniteWin/</ResonitePath>
+        <LangVersion>latest</LangVersion>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="NewConnectors\AssetConnectors\Texture3DConnector.cs" />
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Remove="NewConnectors\AssetConnectors\Texture3DConnector.cs"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Krafs.Publicizer" Version="2.2.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Serilog" Version="4.1.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageReference Include="System.Memory" Version="4.6.0" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Reference Include="ResoniteModLoader">
-      <HintPath Condition="Exists('$(ResonitePath)ResoniteModLoader.dll')">$(ResonitePath)ResoniteModLoader.dll</HintPath>
-      <HintPath Condition="Exists('$(ResonitePath)Libraries/ResoniteModLoader.dll')">$(ResonitePath)Libraries/ResoniteModLoader.dll</HintPath>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/Assembly-CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="FrooxEngine">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/FrooxEngine.dll</HintPath>
-    </Reference>
-    <Reference Include="Elements.Core">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/Elements.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Elements.Assets">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/Elements.Assets.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.VideoModule">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.VideoModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityFrooxEngineRunner">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityFrooxEngineRunner.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.CoreModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.AudioModule">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.AudioModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.AssetBundleModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.ParticleSystemModule">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.ParticleSystemModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.XRModule">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.XRModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.VRModule">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.VRModule.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.Postprocessing.Runtime">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/Unity.Postprocessing.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Memory">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/System.Memory.dll</HintPath>
-    </Reference>
-    <Reference Include="AssimpNet">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/AssimpNet.dll</HintPath>
-    </Reference>
-    <Reference Include="BepuUtilities">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/BepuUtilities.dll</HintPath>
-    </Reference>
-    <Reference Include="BepuPhysics">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/BepuPhysics.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/SharpDX.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX.DXGI">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/SharpDX.DXGI.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX.Direct3D11">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/SharpDX.Direct3D11.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Threading.Tasks.Dataflow">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/System.Threading.Tasks.Dataflow.dll</HintPath>
-    </Reference>
-    <Reference Include="NativeGraphics.NET">
-      <HintPath>$(ResonitePath)Resonite_Data/Managed/NativeGraphics.NET.dll</HintPath>
-    </Reference>
-    <Reference Include="HarmonyLib">
-      <HintPath Condition="Exists('$(ResonitePath)0Harmony.dll')">$(ResonitePath)0Harmony.dll</HintPath>
-      <HintPath Condition="Exists('$(ResonitePath)rml_libs/0Harmony.dll')">$(ResonitePath)rml_libs/0Harmony.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  
-  <ItemGroup>
-	<Publicize Include="Assembly-CSharp:DuplicableDisplay._monitor" />
-	<Publicize Include="Assembly-CSharp:DuplicableDisplay._window" />
-	<Publicize Include="Assembly-CSharp:DuplicableDisplay.currentState" />
-	<Publicize Include="Assembly-CSharp:DuplicableDisplay._requests" />
-	<Publicize Include="Assembly-CSharp:DuplicableDisplay.UpdateProperties" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Krafs.Publicizer" Version="2.2.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Serilog" Version="4.1.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
+        <PackageReference Include="System.Memory" Version="4.6.0"/>
+        <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0"/>
+    </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy &quot;$(TargetDir)\$(TargetFileName)&quot; &quot;$(ResonitePath)\rml_mods\&quot;" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
-    <Exec Command="cp -u &quot;$(TargetDir)/$(TargetFileName)&quot; &quot;$(ResonitePath)/rml_mods/&quot;" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
-  </Target>
+    <ItemGroup>
+        <Reference Include="ResoniteModLoader">
+            <HintPath Condition="Exists('$(ResonitePath)ResoniteModLoader.dll')">$(ResonitePath)ResoniteModLoader.dll</HintPath>
+            <HintPath Condition="Exists('$(ResonitePath)Libraries/ResoniteModLoader.dll')">$(ResonitePath)Libraries/ResoniteModLoader.dll</HintPath>
+        </Reference>
+        <Reference Include="Assembly-CSharp">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="FrooxEngine">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/FrooxEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="Elements.Core">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/Elements.Core.dll</HintPath>
+        </Reference>
+        <Reference Include="Elements.Assets">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/Elements.Assets.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.VideoModule">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.VideoModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityFrooxEngineRunner">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityFrooxEngineRunner.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.AudioModule">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.AudioModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.AssetBundleModule">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.AssetBundleModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.ParticleSystemModule">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.ParticleSystemModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.XRModule">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.XRModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.VRModule">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/UnityEngine.VRModule.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.Postprocessing.Runtime">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/Unity.Postprocessing.Runtime.dll</HintPath>
+        </Reference>
+        <Reference Include="System.Memory">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/System.Memory.dll</HintPath>
+        </Reference>
+        <Reference Include="AssimpNet">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/AssimpNet.dll</HintPath>
+        </Reference>
+        <Reference Include="BepuUtilities">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/BepuUtilities.dll</HintPath>
+        </Reference>
+        <Reference Include="BepuPhysics">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/BepuPhysics.dll</HintPath>
+        </Reference>
+        <Reference Include="SharpDX">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/SharpDX.dll</HintPath>
+        </Reference>
+        <Reference Include="SharpDX.DXGI">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/SharpDX.DXGI.dll</HintPath>
+        </Reference>
+        <Reference Include="SharpDX.Direct3D11">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/SharpDX.Direct3D11.dll</HintPath>
+        </Reference>
+        <Reference Include="System.Threading.Tasks.Dataflow">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/System.Threading.Tasks.Dataflow.dll</HintPath>
+        </Reference>
+        <Reference Include="NativeGraphics.NET">
+            <HintPath>$(ResonitePath)Resonite_Data/Managed/NativeGraphics.NET.dll</HintPath>
+        </Reference>
+        <Reference Include="HarmonyLib">
+            <HintPath Condition="Exists('$(ResonitePath)0Harmony.dll')">$(ResonitePath)0Harmony.dll</HintPath>
+            <HintPath Condition="Exists('$(ResonitePath)rml_libs/0Harmony.dll')">$(ResonitePath)rml_libs/0Harmony.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Publicize Include="Assembly-CSharp:DuplicableDisplay._monitor"/>
+        <Publicize Include="Assembly-CSharp:DuplicableDisplay._window"/>
+        <Publicize Include="Assembly-CSharp:DuplicableDisplay.currentState"/>
+        <Publicize Include="Assembly-CSharp:DuplicableDisplay._requests"/>
+        <Publicize Include="Assembly-CSharp:DuplicableDisplay.UpdateProperties"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._pruneDisabledTransforms"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._computeDirtyTransforms"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.ShouldPrune"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._changedChildrenTransforms"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ProcessChangedChildren"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._autoInvalidateRects"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.MarkComputeRectChangedAndPropagate"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ProcessChanges"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.HasGraphicsChunk"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._graphicChunksDirty"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._graphicChunks"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.GraphicsChunk"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._removedGraphicChunks"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RequiresPreLayoutCompute"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RunPreLayoutCompute"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._root"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._size"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.ComputeRect"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RequiresPreGraphicsCompute"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.RunPreGraphicsCompute"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.EnsureSortedGraphicsChunks"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._debugChunk"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.RectTransform.UpdateBoundsAndClear"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._finishCanvasUpdate"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.UpdateCycleIndex"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.UpdateCycleStart"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._cachedWorld"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._removals"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas.PrepareCanvasUpdate"/>
+        <Publicize Include="FrooxEngine:FrooxEngine.UIX.Canvas._computeCanvasUpdate"/>
+    </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Exec Command="copy &quot;$(TargetDir)\$(TargetFileName)&quot; &quot;$(ResonitePath)\rml_mods\&quot;" Condition="$([MSBuild]::IsOSPlatform('Windows'))"/>
+        <Exec Command="cp -u &quot;$(TargetDir)/$(TargetFileName)&quot; &quot;$(ResonitePath)/rml_mods/&quot;" Condition="$([MSBuild]::IsOSPlatform('Linux'))"/>
+    </Target>
 
 </Project>
