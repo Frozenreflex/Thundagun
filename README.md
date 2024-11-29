@@ -15,3 +15,4 @@ Thundagun is a lightning fast performance mod for Resonite. It improves performa
 
 - **Issues**: Report bugs or request features via the repository's Issues section.
 - **Pull Requests**: Submit code contributions through Pull Requests.
+
