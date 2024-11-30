@@ -30,8 +30,8 @@ namespace Thundagun;
 
 public class Thundagun : ResoniteMod
 {
-    public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK, SectOLT";
-    public const string VersionString = "1.1.1";
+    public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK, SectOLT"; // in order of first commit
+    public const string VersionString = "1.2.0"; // change minor version for config "API" changes
 
     public static Queue<IUpdatePacket> CurrentBatch = new();
 
@@ -73,8 +73,8 @@ public class Thundagun : ResoniteMod
             false, value => true);
 
     public override string Name => "Thundagun";
-    public override string Author => AuthorString; // in order of first commit
-    public override string Version => VersionString; // change minor version for config "API" changes
+    public override string Author => AuthorString;
+    public override string Version => VersionString;
     public override string Link => "https://github.com/Frozenreflex/Thundagun";
 
     public static void QueuePacket(IUpdatePacket packet)
