@@ -128,7 +128,7 @@ public class Thundagun : ResoniteMod
             }
         }
 
-        if (!Engine.Current.IsWine && !Engine.Config.DisableDesktop)
+        if (!Engine.Current.IsWine && !Engine.Config.DisableDesktop && Engine.Current.Platform != Platform.Linux)
         {
             // Patching DuplicableDisplay too early causes a Unity crash, so schedule it to be patched after the first non-userspace world is focused
             Engine.Current.RunPostInit(() => { Engine.Current.WorldManager.WorldFocused += WorldAdded; });
