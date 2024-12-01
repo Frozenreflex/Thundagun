@@ -203,6 +203,15 @@ internal class PatchDesktop
     }
 }
 
+[HarmonyPatch(typeof(CameraPostprocessingManager), "OnPostProcessingChanged")]
+internal class PostProcessingPatch
+{
+    public static bool Prefix()
+    {
+        return false;
+    }
+}
+
 [HarmonyPatch(typeof(Canvas), "StartCanvasUpdate")]
 internal class UIXPatch
 {
