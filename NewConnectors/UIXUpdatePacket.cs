@@ -14,14 +14,14 @@ public class UIXUpdatePacket : UpdatePacket<Canvas>
 {
     public UIXUpdatePacket(Canvas owner) : base(owner)
     {
-        owner.UpdateCycleIndex++;
-        owner.UpdateCycleStart = DateTime.UtcNow;
-        owner._cachedWorld = owner.World;
-        foreach (var removal in owner._removals) removal();
-        owner._removals.Clear();
-        owner.PrepareCanvasUpdate();
         owner.RunInUpdates(0, async () => 
         {
+			owner.UpdateCycleIndex++;
+			owner.UpdateCycleStart = DateTime.UtcNow;
+			owner._cachedWorld = owner.World;
+			foreach (var removal in owner._removals) removal();
+			owner._removals.Clear();
+			owner.PrepareCanvasUpdate();
 			await default(ToBackground);
 			try
 			{
