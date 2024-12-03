@@ -638,7 +638,7 @@ public static class AsyncLogger
                         $"Unity current: {now - SynchronizationManager.UnityStartTime} Resonite current: {now - SynchronizationManager.ResoniteStartTime} UnityLastUpdateInterval: {SynchronizationManager.UnityLastUpdateInterval} ResoniteLastUpdateInterval: {SynchronizationManager.ResoniteLastUpdateInterval}");
 
 
-                SynchronizationManager.SpinWait(TimeSpan.FromSeconds(1.0 / Thundagun.Config.GetValue(Thundagun.LoggingRate)));
+                SynchronizationManager.Sleep(TimeSpan.FromSeconds(1.0 / Thundagun.Config.GetValue(Thundagun.LoggingRate)));
             }
         });
     }
@@ -651,15 +651,9 @@ public static class SynchronizationManager
     public static TimeSpan UnityLastUpdateInterval { get; internal set; } = TimeSpan.Zero;
     public static TimeSpan ResoniteLastUpdateInterval { get; internal set; } = TimeSpan.Zero;
 
-    public static void SpinWait(TimeSpan duration)
+    public static void Sleep(TimeSpan duration)
     {
-        var spin = new SpinWait();
-        var stopwatch = Stopwatch.StartNew();
-
-        while (stopwatch.Elapsed < duration)
-        {
-            spin.SpinOnce();
-        }
+        Thread.Sleep(duration);
     }
 
     public static void OnUnityUpdate()
@@ -681,13 +675,13 @@ public static class SynchronizationManager
             // sleep unity while frooxengine has not submitted any updates
             while (!status && Engine.Current.IsReady)
             {
-                SpinWait(TimeSpan.FromMilliseconds(0.1));
+                Sleep(TimeSpan.FromMilliseconds(0.1));
                 status = Thundagun.CompletedUpdates.Count > 0;
             }
         }
 
         var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxUnityTickRate));
-        if (DateTime.Now - UnityStartTime < ticktime) SpinWait(ticktime - UnityLastUpdateInterval);
+        if (DateTime.Now - UnityStartTime < ticktime) Sleep(ticktime - UnityLastUpdateInterval);
 
         UnityStartTime = DateTime.Now;
     }
@@ -707,7 +701,7 @@ public static class SynchronizationManager
             //sleep FrooxEngine while Unity is processing update packets
             while (!status)
             {
-                SpinWait(TimeSpan.FromMilliseconds(0.1));
+                Sleep(TimeSpan.FromMilliseconds(0.1));
                 lock (Thundagun.unityCompletionStatus)
                 {
                     status = Thundagun.unityCompletionStatus.Completed;
@@ -716,7 +710,7 @@ public static class SynchronizationManager
         }
 
         var ticktime = TimeSpan.FromMilliseconds(1000.0 / Thundagun.Config.GetValue(Thundagun.MaxEngineTickRate));
-        if (DateTime.Now - ResoniteStartTime < ticktime) SpinWait(ticktime - ResoniteLastUpdateInterval);
+        if (DateTime.Now - ResoniteStartTime < ticktime) Sleep(ticktime - ResoniteLastUpdateInterval);
 
         ResoniteStartTime = DateTime.Now;
     }
