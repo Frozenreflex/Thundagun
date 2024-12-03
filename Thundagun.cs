@@ -227,6 +227,8 @@ public static class FrooxEngineRunnerPatch
 {
     public static Queue<int> assets_processed = new();
 
+    private static Queue<IUpdatePacket> _incompleteUpdates = new();
+
     public static DateTime lastrender;
     public static DateTime lastTick;
 
@@ -338,13 +340,12 @@ public static class FrooxEngineRunnerPatch
                                 done = true;
                         }
 
-                        Queue<IUpdatePacket> incomplete = new();
                         if (Thundagun.Config.GetValue(Thundagun.RenderIncompleteUpdates))
                             lock (Thundagun.CurrentBatch)
                             {
                                 while (Thundagun.CurrentBatch.Count > 0)
                                 {
-                                    incomplete.Enqueue(Thundagun.CurrentBatch.Dequeue());
+                                    _incompleteUpdates.Enqueue(Thundagun.CurrentBatch.Dequeue());
                                     done = true;
                                 }
                             }
@@ -360,16 +361,18 @@ public static class FrooxEngineRunnerPatch
                                     Thundagun.Msg(e);
                                 }
 
-                        if (incomplete.Count > 0)
-                            foreach (var packet in incomplete)
-                                try
-                                {
-                                    packet.Update();
-                                }
-                                catch (Exception e)
-                                {
-                                    Thundagun.Msg(e);
-                                }
+                        while (_incompleteUpdates.Count > 0)
+                        {
+                            var packet = _incompleteUpdates.Dequeue();
+                            try
+                            {
+                                packet.Update();
+                            }
+                            catch (Exception e)
+                            {
+                                Thundagun.Msg(e);
+                            }
+                        }  
 
                         if (Thundagun.Config.GetValue(Thundagun.EmulateVanilla)) done = true;
                     }
