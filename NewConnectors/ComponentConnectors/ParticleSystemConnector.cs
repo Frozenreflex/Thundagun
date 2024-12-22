@@ -8,7 +8,10 @@ using UnityEngine.Rendering;
 using UnityFrooxEngineRunner;
 using MaterialConnector = Thundagun.NewConnectors.AssetConnectors.MaterialConnector;
 using MeshConnector = Thundagun.NewConnectors.AssetConnectors.MeshConnector;
-using ParticleSystem = FrooxEngine.ParticleSystem;
+using ParticleSystem = FrooxEngine.LegacyParticleSystem;
+using ParticleStyle = FrooxEngine.LegacyParticleStyle;
+using ParticleAlignment = FrooxEngine.PhotonDust.LegacyParticleAlignment;
+using ParticleTrailMode = FrooxEngine.PhotonDust.LegacyParticleTrailMode;
 
 #endregion
 

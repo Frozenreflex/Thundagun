@@ -10,7 +10,7 @@ using ParticleSystem = UnityEngine.ParticleSystem;
 #endregion
 
 namespace Thundagun.NewConnectors.ComponentConnectors;
-
+using ParticleEmission = FrooxEngine.LegacyParticleEmission;
 public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector>
 {
     private const int GRANULARITY = 100;
@@ -38,9 +38,9 @@ public class ParticleSystemBehavior : ConnectorBehaviour<ParticleSystemConnector
 
     internal ParticleSystem.TrailModule pTrail;
 
-    internal FrooxEngine.ParticleSystem FrooxEngineParticleSystem => Connector.Owner;
+    internal FrooxEngine.LegacyParticleSystem FrooxEngineParticleSystem => Connector.Owner;
 
-    internal ParticleStyle ParticleStyle => FrooxEngineParticleSystem.Style.Target;
+    internal LegacyParticleStyle ParticleStyle => FrooxEngineParticleSystem.Style.Target;
 
     internal PhysicsManager Physics => Connector?.World?.Physics;
 
