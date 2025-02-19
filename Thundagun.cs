@@ -239,7 +239,6 @@ public static class FrooxEngineRunnerPatch
     [HarmonyPatch("Update")]
     public static bool Update(FrooxEngineRunner __instance,
         ref Engine ____frooxEngine, ref bool ____shutdownRequest, ref Stopwatch ____externalUpdate,
-        ref World ____lastFocusedWorld,
         ref HeadOutput ____vrOutput, ref HeadOutput ____screenOutput, ref AudioListener ____audioListener,
         ref List<World> ____worlds)
     {
@@ -308,7 +307,6 @@ public static class FrooxEngineRunnerPatch
                 if (Thundagun.FrooxEngineTask?.Exception is not null) throw Thundagun.FrooxEngineTask.Exception;
 
                 var focusedWorld = engine.WorldManager.FocusedWorld;
-                var lastFocused = ____lastFocusedWorld;
                 UpdateHeadOutput(focusedWorld, engine, ____vrOutput, ____screenOutput, ____audioListener,
                     ref ____worlds);
 
@@ -382,18 +380,6 @@ public static class FrooxEngineRunnerPatch
                 var loopTime = DateTime.Now;
                 var updateTime = DateTime.Now;
 
-                if (focusedWorld != lastFocused)
-                {
-                    DynamicGIManager.ScheduleDynamicGIUpdate(true);
-                    ____lastFocusedWorld = focusedWorld;
-                    ____frooxEngine.GlobalCoroutineManager.RunInUpdates(10,
-                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
-                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(1f,
-                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
-                    ____frooxEngine.GlobalCoroutineManager.RunInSeconds(5f,
-                        () => DynamicGIManager.ScheduleDynamicGIUpdate(true));
-                }
-
                 UpdateQualitySettings(__instance);
 
                 var finishTime = DateTime.Now;
@@ -414,7 +400,6 @@ public static class FrooxEngineRunnerPatch
                 return false;
             }
 
-            __instance.DynamicGI?.UpdateDynamicGI();
             ____externalUpdate.Restart();
         }
 

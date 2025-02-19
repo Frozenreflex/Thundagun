@@ -36,11 +36,6 @@ public class RenderConnector : IRenderConnector
         return renderQueue.Enqueue(renderSettings);
     }
 
-    public void UpdateDynamicGI(bool immediate)
-    {
-        DynamicGIManager.ScheduleDynamicGIUpdate(immediate);
-    }
-
     public void RegisterCamera(FrooxEngine.Camera camera)
     {
         RegisterUnityCamera(camera.ToUnity());
