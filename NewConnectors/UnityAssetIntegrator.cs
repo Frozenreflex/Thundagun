@@ -29,7 +29,9 @@ public class UnityAssetIntegrator : IAssetManagerConnector
     private readonly Stopwatch _stopwatch = new();
     private readonly ConcurrentQueue<Action> _taskQueue = new();
     private readonly ConcurrentQueue<QueueAction> renderThreadQueue = new();
-    private double _maxMilliseconds;
+	private readonly SpinQueue<QueueAction> particlesQueue = new SpinQueue<QueueAction>();
+	private readonly Stopwatch particlesStopwatch = new Stopwatch();
+	private double maxMilliseconds;
     private IntPtr renderThreadPointer;
     public Engine Engine => AssetManager.Engine;
 
@@ -91,7 +93,7 @@ public class UnityAssetIntegrator : IAssetManagerConnector
     {
         try
         {
-            _instance.ProcessQueue2(MathX.Max(_instance._maxMilliseconds, 2.0), true);
+            _instance.ProcessQueue2(MathX.Max(_instance.maxMilliseconds, 2.0), true);
         }
         catch (Exception ex)
         {
@@ -175,12 +177,12 @@ public class UnityAssetIntegrator : IAssetManagerConnector
                 num++;
 
                 var actionDone = false;
-                if (val.Action != null)
+                if (val.action != null)
                 {
-                    val.Action();
+                    val.action();
                     actionDone = true;
                 }
-                else if (!val.Coroutine.MoveNext())
+                else if (!val.coroutine.MoveNext())
                 {
                     actionDone = true;
                 }
@@ -217,27 +219,94 @@ public class UnityAssetIntegrator : IAssetManagerConnector
             }
         }
 
-        _maxMilliseconds = maxMilliseconds - _stopwatch.GetElapsedMilliseconds();
+        this.maxMilliseconds = maxMilliseconds - _stopwatch.GetElapsedMilliseconds();
         return num;
     }
 
-    private struct QueueAction
-    {
-        public readonly Action Action;
-        public readonly IEnumerator Coroutine;
+	private struct QueueAction
+	{
+		public readonly Action action;
 
-        public QueueAction(Action action)
-        {
-            Action = action;
-            Coroutine = null;
-        }
+		public readonly Action<object> actionWithData;
 
-        public QueueAction(IEnumerator coroutine)
-        {
-            Action = null;
-            Coroutine = coroutine;
-        }
-    }
+		public readonly IEnumerator coroutine;
+
+		public readonly object data;
+
+		public QueueAction(Action action)
+		{
+			this.action = action;
+			actionWithData = null;
+			coroutine = null;
+			data = null;
+		}
+
+		public QueueAction(IEnumerator coroutine)
+		{
+			this.coroutine = coroutine;
+			action = null;
+			actionWithData = null;
+			data = null;
+		}
+
+		public QueueAction(Action<object> actionWithData, object data)
+		{
+			this.actionWithData = actionWithData;
+			this.data = data;
+			action = null;
+			coroutine = null;
+		}
+	}
+
+	public int ProcessParticlesQueue(double maxMilliseconds)
+	{
+		int num = 0;
+		particlesStopwatch.Restart();
+		try
+		{
+			double elapsedMilliseconds2;
+			double num2;
+			do
+			{
+				double elapsedMilliseconds = particlesStopwatch.GetElapsedMilliseconds();
+				if (particlesQueue.TryPeek(out var val))
+				{
+					num++;
+					bool flag = false;
+					if (val.action != null)
+					{
+						val.action();
+						flag = true;
+					}
+					else if (val.actionWithData != null)
+					{
+						val.actionWithData(val.data);
+						flag = true;
+					}
+					else if (!val.coroutine.MoveNext())
+					{
+						flag = true;
+					}
+					if (flag)
+					{
+						particlesQueue.TryDequeue(out var _);
+					}
+					elapsedMilliseconds2 = particlesStopwatch.GetElapsedMilliseconds();
+					num2 = elapsedMilliseconds2 - elapsedMilliseconds;
+					continue;
+				}
+				break;
+			}
+			while (elapsedMilliseconds2 + num2 < maxMilliseconds);
+		}
+		catch (Exception ex)
+		{
+			UniLog.Warning("Exception integrating asset: " + ex);
+			particlesQueue.TryDequeue(out var _);
+		}
+		this.maxMilliseconds = maxMilliseconds - particlesStopwatch.GetElapsedMilliseconds();
+		return num;
+	}
 }
 
 public class ProcessQueueUnityAssetIntegrator : UpdatePacket<UnityAssetIntegrator>

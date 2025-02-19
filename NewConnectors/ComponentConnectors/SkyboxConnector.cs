@@ -31,9 +31,8 @@ public class ApplyChangesSkyboxConnector : UpdatePacket<SkyboxConnector>
     public override void Update()
     {
         if (!Active) return;
-        var mat = Material?.UnityMaterial ?? MaterialConnector.NullMaterial;
-        var old = UnityEngine.RenderSettings.skybox;
-        UnityEngine.RenderSettings.skybox = mat;
-        DynamicGIManager.ScheduleDynamicGIUpdate(old != mat);
-    }
+		var skybox = Material?.UnityMaterial ?? MaterialConnector.NullMaterial;
+		var old = UnityEngine.RenderSettings.skybox;
+		UnityEngine.RenderSettings.skybox = skybox;
+	}
 }
