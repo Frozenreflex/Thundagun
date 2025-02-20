@@ -31,7 +31,7 @@ namespace Thundagun;
 public class Thundagun : ResoniteMod
 {
     public const string AuthorString = "Fro Zen, 989onan, DoubleStyx, Nytra, Merith-TK, SectOLT, BlueberryWolf"; // in order of first commit
-    public const string VersionString = "1.2.1"; // change minor version for config "API" changes
+    public const string VersionString = "1.2.2"; // change minor version for config "API" changes
 
     public static Queue<IUpdatePacket> CurrentBatch = new();
 
