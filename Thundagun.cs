@@ -265,6 +265,8 @@ public static class FrooxEngineRunnerPatch
             {
                 SynchronizationManager.OnUnityUpdate();
 
+                Cursor.visible = false;
+
                 UpdateFrameRate(__instance);
                 var starttime = DateTime.Now;
 
