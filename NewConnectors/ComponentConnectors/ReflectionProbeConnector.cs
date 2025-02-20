@@ -23,7 +23,9 @@ public class ReflectionProbeConnector : ComponentConnector<ReflectionProbe, IRef
 
     public GameObject probeGO;
 
-    public override void ApplyChanges()
+	public UnityEngine.ReflectionProbe UnityProbe => probe;
+
+	public override void ApplyChanges()
     {
         Thundagun.QueuePacket(new ApplyChangesReflectionProbeConnector(this));
     }
@@ -105,6 +107,10 @@ public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbe
     public Vector3 ProbeSize;
     public ReflectionProbeTimeSlicingMode ProbeTimeSlicingMode;
     public ReflectionProbeRefreshMode RefreshMode;
+    public UnityEngine.Texture CustomBakedTexture;
+    public int CullingMask;
+    FrooxEngine.ReflectionProbe.Type ProbeType;
+    FrooxEngine.World.WorldFocus Focus;
 
     public ApplyChangesReflectionProbeConnector(ReflectionProbeConnector owner) : base(owner)
     {
@@ -112,17 +118,22 @@ public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbe
         {
             case ReflectionProbe.Type.Baked:
                 ProbeMode = ReflectionProbeMode.Custom;
-                BakedTexture = owner.Owner.BakedCubemap?.Asset?.Connector as IUnityTextureProvider;
+				CustomBakedTexture = owner.Owner.BakedCubemap?.Asset?.GetUnity();
                 break;
             case ReflectionProbe.Type.Realtime:
                 ProbeMode = ReflectionProbeMode.Realtime;
                 RefreshMode = ReflectionProbeRefreshMode.EveryFrame;
-                BakedTexture = null;
+				CustomBakedTexture = null;
                 break;
-        }
+			case FrooxEngine.ReflectionProbe.Type.OnChanges:
+				ProbeMode = ReflectionProbeMode.Realtime;
+				RefreshMode = ReflectionProbeRefreshMode.ViaScripting;
+				CustomBakedTexture = null;
+				break;
+		}
 
-        ProbeImportance = owner.Owner.Importance.Value;
-        ProbeIntensity = owner.Owner.Intensity.Value;
+        ProbeImportance = MathX.Max(0, Owner.Owner.Importance);
+		ProbeIntensity = owner.Owner.Intensity.Value;
         ProbeBlendDistance = owner.Owner.BlendDistance.Value;
         ProbeBoxProjection = owner.Owner.BoxProjection.Value;
         ProbeSize = owner.Owner.BoxSize.Value.ToUnity();
@@ -137,16 +148,20 @@ public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbe
             _ => ReflectionProbeClearFlags.SolidColor
         };
         ProbeBackgroundColor = owner.Owner.BackgroundColor.Value.ToUnity(ColorProfile.sRGB);
-        ProbeNearClipPlane = owner.Owner.NearClip.Value;
-        ProbeFarClipPlane = owner.Owner.FarClip.Value;
-    }
+        ProbeNearClipPlane = MathX.Max(0.001f, Owner.Owner.NearClip.Value);
+		ProbeFarClipPlane = MathX.Max(ProbeNearClipPlane + 0.001f, base.Owner.Owner.FarClip.Value);
+        CullingMask = ((!Owner.Owner.SkyboxOnly.Value) ? RenderHelper.PUBLIC_RENDER_MASK : 0);
+        ProbeType = Owner.Owner.ProbeType.Value;
+        Focus = Owner.Owner.World.Focus;
+	}
 
     public override void Update()
     {
         var probe = Owner.probe;
         probe.mode = ProbeMode;
-        if (RefreshMode != default) probe.refreshMode = RefreshMode; //???
-        probe.customBakedTexture = BakedTexture?.UnityTexture;
+        //if (RefreshMode != default) probe.refreshMode = RefreshMode; //???
+		probe.refreshMode = RefreshMode;
+		probe.customBakedTexture = CustomBakedTexture;
         probe.importance = ProbeImportance;
         probe.intensity = ProbeIntensity;
         probe.blendDistance = ProbeBlendDistance;
@@ -160,5 +175,17 @@ public class ApplyChangesReflectionProbeConnector : UpdatePacket<ReflectionProbe
         probe.backgroundColor = ProbeBackgroundColor;
         probe.nearClipPlane = ProbeNearClipPlane;
         probe.farClipPlane = ProbeFarClipPlane;
-    }
+        probe.cullingMask = CullingMask;
+        if (ProbeType != ReflectionProbe.Type.OnChanges || Focus != World.WorldFocus.Focused) return;
+		int renderIndex = probe.RenderProbe();
+		base.Owner.Owner.StartTask(async delegate
+		{
+			do
+			{
+				await default(NextUpdate);
+			}
+			while (!probe.IsFinishedRendering(renderIndex));
+			base.Owner.Owner.NotifyOnChangesRenderFinished();
+		});
+	}
 }
